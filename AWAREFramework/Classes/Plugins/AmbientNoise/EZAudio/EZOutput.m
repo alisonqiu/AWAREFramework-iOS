@@ -740,6 +740,7 @@ OSStatus EZOutputGraphRenderCallback(void                       *inRefCon,
         if ([output.delegate respondsToSelector:@selector(output:playedAudio:withBufferSize:withNumberOfChannels:)])
         {
             UInt32 frames = ioData->mBuffers[0].mDataByteSize / output.info->clientFormat.mBytesPerFrame;
+            NSLog(@"EZoutput convertDataFromAudioBufferList");
             [output.floatConverter convertDataFromAudioBufferList:ioData
                                                withNumberOfFrames:frames
                                                    toFloatBuffers:output.info->floatData];

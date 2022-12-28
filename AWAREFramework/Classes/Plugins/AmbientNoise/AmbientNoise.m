@@ -9,6 +9,7 @@
 #import "AmbientNoise.h"
 #import "AudioAnalysis.h"
 #import "EntityAmbientNoise+CoreDataClass.h"
+//#import "InferenceModule.h"
 
 static vDSP_Length const FFTViewControllerFFTWindowSize = 4096;
 
@@ -50,6 +51,11 @@ NSString * const _Nonnull AWARE_PREFERENCES_PLUGIN_AMBIENT_NOISE_SILENCE_THRESHO
     
     CXCallObserver * callObserver;
     
+    //TODO: init module with url: /Users/alisonqiu/Downloads/swiftApps/ios-demo-app/SpeechRecognition/SpeechRecognition/wav2vec2.ptl
+    NSURL *wav2vec2Path;
+    //InferenceModule * module;
+    NSURL *audio_url;
+    
     AudioFileGenerationHandler audioFileGenerationHandler;
 }
 
@@ -74,6 +80,17 @@ NSString * const _Nonnull AWARE_PREFERENCES_PLUGIN_AMBIENT_NOISE_SILENCE_THRESHO
     KEY_AMBIENT_NOISE_RAW       = @"raw";
     
     AWAREStorage * storage = nil;
+    
+    wav2vec2Path = [[NSBundle mainBundle] URLForResource:@"wav2vec2" withExtension:@"ptl"];
+    //module = [[InferenceModule alloc] initWithFileAtPath:wav2vec2Path];
+//    @try {
+//        module = [[InferenceModule alloc] initWithFileAtPath:wav2vec2Path];
+//    } @catch (NSException *exception) {
+//        NSLog(@"[WARNING] No Object Model at %@", wav2vec2Path);
+//    } @finally {
+//        NSLog(@"tried initializing wav2vec2");
+//    }
+
     
     if (dbType == AwareDBTypeJSON) {
         storage = [[JSONStorage alloc] initWithStudy:study sensorName:SENSOR_AMBIENT_NOISE];
@@ -105,12 +122,12 @@ NSString * const _Nonnull AWARE_PREFERENCES_PLUGIN_AMBIENT_NOISE_SILENCE_THRESHO
     if (self) {
 
         _frequencyMin     = 5;
-        _sampleSize       = 30;
+        _sampleSize       = 1;
         _silenceThreshold = 50;
-        _sampleDuration   = 1;
-        // isSaveRawData = NO;
+        _sampleDuration   = 6;
+        // isSaveRawData = YES;
         
-        recordingSampleRate = 44100;
+        recordingSampleRate = 16000;
         targetSampleRate    = 8000;
         
         maxFrequency = 0;
@@ -165,7 +182,6 @@ NSString * const _Nonnull AWARE_PREFERENCES_PLUGIN_AMBIENT_NOISE_SILENCE_THRESHO
     if (self.isDebug) NSLog(@"Start Ambient Noise Sensor!");
     
     [self setupMicrophone];
-
     mainTimer = [NSTimer scheduledTimerWithTimeInterval:60.0f*_frequencyMin
                                                  target:self
                                                selector:@selector(startRecording:)
@@ -231,8 +247,8 @@ NSString * const _Nonnull AWARE_PREFERENCES_PLUGIN_AMBIENT_NOISE_SILENCE_THRESHO
         NSLog(@"Error setting up audio session active: %@", error.localizedDescription);
     }
     
-    AudioStreamBasicDescription absd = [EZAudioUtilities floatFormatWithNumberOfChannels:1 sampleRate:recordingSampleRate];
-    //AudioStreamBasicDescription absd = [self monoSIntFormatWithSampleRate:8000];
+//    AudioStreamBasicDescription absd = [EZAudioUtilities floatFormatWithNumberOfChannels:1 sampleRate:recordingSampleRate];
+    AudioStreamBasicDescription absd = [EZAudioUtilities monoFloatFormatWithSampleRate:recordingSampleRate];
     
     self.microphone = [EZMicrophone microphoneWithDelegate:self withAudioStreamBasicDescription:absd];
     
@@ -256,6 +272,7 @@ NSString * const _Nonnull AWARE_PREFERENCES_PLUGIN_AMBIENT_NOISE_SILENCE_THRESHO
     // init microphone if it is nil
     if (self.microphone == nil) {
         [self setupMicrophone];
+ 
     }
     
 
@@ -283,17 +300,23 @@ NSString * const _Nonnull AWARE_PREFERENCES_PLUGIN_AMBIENT_NOISE_SILENCE_THRESHO
         self.fft = [EZAudioFFTRolling fftWithWindowSize:FFTViewControllerFFTWindowSize
                                              sampleRate:self.microphone.audioStreamBasicDescription.mSampleRate
                                                delegate:self];
-
+        //NSLog(@"self.fft initialized in AN \n");
     }
     
     if (!_recorder) {
+        NSLog(@"startRecoding: no recorder");
+
         self.recorder = [EZRecorder recorderWithURL:[self getAudioFilePathWithNumber:[number intValue]]
                                        clientFormat:[self.microphone audioStreamBasicDescription]
-                                           fileType:EZRecorderFileTypeM4A
+                                           fileType:EZRecorderFileTypeWAV
                                            delegate:self];
+
+        
+        NSLog(@"startRecoding: init recorder success");
     }
     
     [self.microphone startFetchingAudio];
+    NSLog(@"startRecoding: [self.microphone startFetchingAudio] success");
 
     _isRecording = YES;
     [self performSelector:@selector(stopRecording:)
@@ -313,7 +336,7 @@ NSString * const _Nonnull AWARE_PREFERENCES_PLUGIN_AMBIENT_NOISE_SILENCE_THRESHO
             if(sender != nil){
                 number = [[(NSDictionary * )sender objectForKey:self->KEY_AUDIO_CLIP_NUMBER] intValue];
             }
-            
+            NSLog(@"AN: will start saveAudioDataWithNumber");
             [self saveAudioDataWithNumber:number];
             
             // init variables
@@ -339,7 +362,7 @@ NSString * const _Nonnull AWARE_PREFERENCES_PLUGIN_AMBIENT_NOISE_SILENCE_THRESHO
                 self.microphone.delegate = nil;
                 self.microphone = nil;
                 // stop recording audio
-                // [self.recorder closeAudioFile];
+                [self.recorder closeAudioFile];
                 self.recorder.delegate = nil;
                 // stop fft
                 self.fft.delegate = nil;
@@ -379,7 +402,8 @@ NSString * const _Nonnull AWARE_PREFERENCES_PLUGIN_AMBIENT_NOISE_SILENCE_THRESHO
     [dict setObject:[NSNumber numberWithBool:[AudioAnalysis isSilent:rms threshold:_silenceThreshold]] forKey:KEY_AMBIENT_NOISE_SILENT];
     [dict setObject:[NSNumber numberWithInteger:_silenceThreshold] forKey:KEY_AMBIENT_NOISE_SILENT_THRESHOLD];
     // [dict setObject:@"" forKey:KEY_AMBIENT_NOISE_RAW];
-    
+    audio_url = [self getAudioFilePathWithNumber:number];
+    NSLog(@"audio_url: ", audio_url);
     if(isSaveRawData){
         NSData * data = [NSData dataWithContentsOfURL:[self getAudioFilePathWithNumber:number]];
         [dict setObject:[data base64EncodedStringWithOptions:0] forKey:KEY_AMBIENT_NOISE_RAW];
@@ -390,9 +414,11 @@ NSString * const _Nonnull AWARE_PREFERENCES_PLUGIN_AMBIENT_NOISE_SILENCE_THRESHO
         NSError * error = nil;
         if (url != nil) {
             if ([NSFileManager.defaultManager removeItemAtURL:url error:&error] ){
-                if (self.isDebug) NSLog(@"[%@] Remove an audio file -> Success: %@", self.getSensorName, url.debugDescription);
+//                if (self.isDebug) NSLog(@"[%@] Remove an audio file -> Success: %@", self.getSensorName, url.debugDescription);
+                NSLog(@"[%@] Remove an audio file -> Success", self.getSensorName);
             }else{
                 if (self.isDebug) NSLog(@"[%@] Remove an audio file -> Error: %@",   self.getSensorName, url.debugDescription);
+                NSLog(@"[%@] Remove an audio file -> Success", self.getSensorName);
             }
         }
     }
@@ -408,7 +434,7 @@ NSString * const _Nonnull AWARE_PREFERENCES_PLUGIN_AMBIENT_NOISE_SILENCE_THRESHO
         }
         
     } @catch (NSException *exception) {
-        NSLog(@"%@", exception.debugDescription);
+        NSLog(@"AN line 437 exception: %@", exception.debugDescription);
     }
 }
 
@@ -474,25 +500,24 @@ NSString * const _Nonnull AWARE_PREFERENCES_PLUGIN_AMBIENT_NOISE_SILENCE_THRESHO
       hasAudioReceived:(float **)buffer
         withBufferSize:(UInt32)bufferSize
   withNumberOfChannels:(UInt32)numberOfChannels{
-    // __weak typeof (self) weakSelf = self;
+
+    float fft_res = *[self.fft computeFFTWithBuffer:buffer[0] withBufferSize:bufferSize];
+
+    //self.fft calculated by AN: 0.000000
     
-    // Getting audio data as an array of float buffer arrays that can be fed into the
-    // EZAudioPlot, EZAudioPlotGL, or whatever visualization you would like to do with
-    // the microphone data.
-    
-    //
-    // Calculate the FFT, will trigger EZAudioFFTDelegate
-    //
-    [self.fft computeFFTWithBuffer:buffer[0] withBufferSize:bufferSize];
-    
-    //
     // Calculate the RMS with buffer and bufferSize
     // NOTE: 1000
     //
+    //TODO: add *buffer bufferSize to dict
     rms = [EZAudioUtilities RMS:*buffer length:bufferSize] * 1000;
-    // NSLog(@"%f", rms);
-    
-    //
+
+    //rms in AN is 0.030499
+
+    NSString *res = [self.delegate audioDidSave:audio_url];
+    //NSLog(@"res in AN is %@", res);
+    // calculate module prediction
+    //NSString *dnn_res = [module recognize:*buffer bufLength:bufferSize];
+    //NSlog("-----------dnn_res %@ \n",dnn_res);
     // Decibel Calculation.
     // https://github.com/syedhali/EZAudio/issues/50
     //
@@ -538,12 +563,13 @@ NSString * const _Nonnull AWARE_PREFERENCES_PLUGIN_AMBIENT_NOISE_SILENCE_THRESHO
             //        [weakSelf.audioPlot updateBuffer:buffer[0] withBufferSize:bufferSize];
             NSString * value = [NSString stringWithFormat:@"dB:%f, RMS:%f, Frequency:%f", self->db, self->rms, self->maxFrequency];
             [self setLatestValue:value];
+            
         });
     }
 }
 
 //------------------------------------------------------------------------------
-
+//TODO: call function (maybe this?) in VC (instead of audioRecorderDidFinishRecording) to get the url of audio recording for inference
 /**
  Returns back the buffer list containing the audio received. This occurs on the background thread so any drawing code must explicity perform its functions on the main thread.
  @param microphone       The instance of the EZMicrophone that triggered the event.
@@ -648,6 +674,22 @@ NSString * const _Nonnull AWARE_PREFERENCES_PLUGIN_AMBIENT_NOISE_SILENCE_THRESHO
 //    }
     //    [self setLatestValue:[NSString stringWithFormat:@"dB:%f, RMS:%f, Frequency:%f", db, rms, maxFrequency]];
 }
+
+- (NSString *)audioDidSave:(NSURL*)audio_url
+{
+
+        
+        if(audio_url.isFileURL){
+            if ([self.delegate respondsToSelector:@selector(audioDidSave:)]) {
+                return [self.delegate audioDidSave:audio_url];
+            }
+        }
+    return @"doesn't respond to selector";
+
+
+    }
+    
+
 
 
 @end

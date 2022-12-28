@@ -309,7 +309,7 @@ BOOL __shouldExitOnCheckResultFail = YES;
     asbd.mBitsPerChannel   = 8 * floatByteSize;
     asbd.mBytesPerFrame    = floatByteSize;
     asbd.mChannelsPerFrame = 2;
-    asbd.mFormatFlags      = kAudioFormatFlagIsFloat|kAudioFormatFlagIsNonInterleaved;
+    asbd.mFormatFlags      = kAudioFormatFlagIsFloat|kAudioFormatFlagIsFloat;
     asbd.mFormatID         = kAudioFormatLinearPCM;
     asbd.mFramesPerPacket  = 1;
     asbd.mBytesPerPacket   = asbd.mFramesPerPacket * asbd.mBytesPerFrame;
@@ -526,6 +526,7 @@ BOOL __shouldExitOnCheckResultFail = YES;
 + (void)checkResult:(OSStatus)result operation:(const char *)operation
 {
     if (result == noErr) return;
+//    NSLog(@"2. EZUtility: checkResult:(OSStatus)result operation:(const char *)operation, result has error");
     char errorString[20];
     // see if it appears to be a 4-char-code
     *(UInt32 *)(errorString + 1) = CFSwapInt32HostToBig(result);

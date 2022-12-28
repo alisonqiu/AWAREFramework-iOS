@@ -90,8 +90,11 @@ typedef struct
 {
     AudioStreamBasicDescription fileFormat = [EZRecorder formatForFileType:fileType
                                                           withSourceFormat:clientFormat];
+
     AudioFileTypeID audioFileTypeID = [EZRecorder fileTypeIdForFileType:fileType
                                                        withSourceFormat:clientFormat];
+    
+   
     return [self initWithURL:url
                 clientFormat:clientFormat
                   fileFormat:fileFormat
@@ -233,7 +236,8 @@ typedef struct
             break;
             
         case EZRecorderFileTypeWAV:
-            asbd = [EZAudioUtilities stereoFloatInterleavedFormatWithSampleRate:sourceFormat.mSampleRate];
+//            asbd = [EZAudioUtilities stereoFloatInterleavedFormatWithSampleRate:sourceFormat.mSampleRate];
+            asbd = [EZAudioUtilities monoFloatFormatWithSampleRate:sourceFormat.mSampleRate];
             break;
             
         default:

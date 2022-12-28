@@ -19,7 +19,7 @@
 // By default this will record a file to the application's documents directory
 // (within the application's sandbox)
 //
-#define kAudioFilePath @"rawAudio.m4a"
+#define kAudioFilePath @"rawAudio.wav"
 #define kRawAudioDirectory @"rawAudioData"
 
 extern NSString * _Nonnull const AWARE_PREFERENCES_STATUS_PLUGIN_AMBIENT_NOISE;
@@ -56,9 +56,18 @@ extern NSString * _Nonnull const AWARE_PREFERENCES_PLUGIN_AMBIENT_NOISE_SILENCE_
 
 @end
 
+@protocol AWAREAmbientNoiseDelegate <NSObject>
+
+@optional
+
+//- (void)recorderDidClose:(EZRecorder *)recorder;
+- (NSString *)audioDidSave:(NSURL *)audio_url;
+@end
 
 
 @interface AmbientNoise : AWARESensor <AWARESensorDelegate, EZMicrophoneDelegate, EZRecorderDelegate, EZAudioFFTDelegate, CXCallObserverDelegate>
+
+@property (nonatomic, weak) id<AWAREAmbientNoiseDelegate> delegate;
 //
 // The microphone component
 //

@@ -652,6 +652,7 @@ static OSStatus EZAudioMicrophoneCallback(void                       *inRefCon,
         //
         // Convert to float
         //
+        //NSLog(@"EZmicrophone convertDataFromAudioBufferList");
         [microphone.floatConverter convertDataFromAudioBufferList:info->audioBufferList
                                                withNumberOfFrames:inNumberFrames
                                                    toFloatBuffers:info->floatData];
@@ -660,6 +661,5 @@ static OSStatus EZAudioMicrophoneCallback(void                       *inRefCon,
                          withBufferSize:inNumberFrames
                    withNumberOfChannels:info->streamFormat.mChannelsPerFrame];
     }
-    
     return result;
 }
