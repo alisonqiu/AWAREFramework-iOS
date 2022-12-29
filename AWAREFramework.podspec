@@ -33,7 +33,7 @@ Pod::Spec.new do |s|
  # s.source_files = 'AWAREFramework/Classes/**/'
   
   s.pod_target_xcconfig = {
-    'HEADER_SEARCH_PATHS' => '$(inherited) "${PODS_ROOT}/LibTorch-Lite/install/include" "${PODS_ROOT}/PytorchExpObjC/apis"',
+    'HEADER_SEARCH_PATHS' => '$(inherited) "${PODS_ROOT}/LibTorch-Lite/install/include"
     'VALID_ARCHS' => 'x86 arm64'
   }
   
