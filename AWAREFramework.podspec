@@ -30,6 +30,12 @@ Pod::Spec.new do |s|
 
   s.ios.deployment_target = '10.1'
   #s.dependency 'LibTorch', '~> 1.10.0'
+ # s.source_files = 'AWAREFramework/Classes/**/'
+  
+  s.pod_target_xcconfig = {
+    'HEADER_SEARCH_PATHS' => '$(inherited) "${PODS_ROOT}/LibTorch-Lite/install/include" "${PODS_ROOT}/PytorchExpObjC/apis"',
+    'VALID_ARCHS' => 'x86 arm64'
+  }
   
 #  s.pod_target_xcconfig = {
 #      'SWIFT_VERSION' => '5.0',
@@ -69,7 +75,7 @@ Pod::Spec.new do |s|
   end
 
   s.subspec 'Microphone' do |sp|
-    sp.source_files = [plugin_path+'AmbientNoise/**/*.m',plugin_path+'AmbientNoise/**/*.h',plugin_path+'Conversation/**/*.m',plugin_path+'Conversation/**/*.h']
+    sp.source_files = [plugin_path+'AmbientNoise/**/*.m',plugin_path+'AmbientNoise/**/*.mm',plugin_path+'AmbientNoise/**/*.h',plugin_path+'Conversation/**/*.m',plugin_path+'Conversation/**/*.h']
     sp.ios.vendored_frameworks = 'AWAREFramework/Frameworks/StudentLifeAudio.framework'
     sp.pod_target_xcconfig  = {'GCC_PREPROCESSOR_DEFINITIONS' => 'IMPORT_MIC=1'}
     sp.dependency 'AWAREFramework/Core'
@@ -92,7 +98,7 @@ Pod::Spec.new do |s|
       cs.dependency 'TrueTime', '~> 5.0.3'
       cs.dependency 'TPCircularBuffer', '~> 1.6'
       cs.dependency 'macros_blocks', '~> 0.0.4'
-      cs.dependency 'LibTorch', '~> 1.10.0'
+      cs.dependency 'LibTorch-Lite', '~> 1.10.0'
   end
 
   s.default_subspec = 'Core'
