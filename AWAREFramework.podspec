@@ -21,7 +21,7 @@ Pod::Spec.new do |s|
   AWARE is an Android and iOS framework dedicated to instrument, infer, log and share mobile context information, for application developers, researchers and smartphone users. AWARE captures hardware-, software-, and human-based data. They transform data into information you can understand.
                        DESC
 
-  s.homepage         = 'https://github.com/tetujin/AWAREFramework-iOS'
+  s.homepage         = 'https://github.com/alisonqiu/AWAREFramework-iOS'
   # s.screenshots     = 'www.example.com/screenshots_1', 'www.example.com/screenshots_2'
   s.license          = { :type => 'Apache2', :file => 'LICENSE' }
   s.author           = { 'Yuuki Nishiyama' => 'yuukin@iis.u-tokyo.ac.jp' }
@@ -32,10 +32,7 @@ Pod::Spec.new do |s|
   #s.dependency 'LibTorch', '~> 1.10.0'
  # s.source_files = 'AWAREFramework/Classes/**/'
   
-  s.pod_target_xcconfig = {
-    'HEADER_SEARCH_PATHS' => '$(inherited) "${PODS_ROOT}/LibTorch-Lite/install/include"
-    'VALID_ARCHS' => 'x86 arm64'
-  }
+  s.pod_target_xcconfig = {'HEADER_SEARCH_PATHS' => '$(inherited) "${PODS_ROOT}/LibTorch-Lite/install/include"'}
   
 #  s.pod_target_xcconfig = {
 #      'SWIFT_VERSION' => '5.0',

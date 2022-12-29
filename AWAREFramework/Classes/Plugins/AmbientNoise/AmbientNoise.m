@@ -51,10 +51,9 @@ NSString * const _Nonnull AWARE_PREFERENCES_PLUGIN_AMBIENT_NOISE_SILENCE_THRESHO
     NSString * KEY_AUDIO_CLIP_NUMBER;
     
     CXCallObserver * callObserver;
-    
-    //TODO: init module with url: /Users/alisonqiu/Downloads/swiftApps/ios-demo-app/SpeechRecognition/SpeechRecognition/wav2vec2.ptl
-    NSURL *wav2vec2Path;
-    //InferenceModule * module;
+
+    NSString *wav2vec2Path;
+    InferenceModule * module;
     NSURL *audio_url;
     
     AudioFileGenerationHandler audioFileGenerationHandler;
@@ -83,15 +82,17 @@ NSString * const _Nonnull AWARE_PREFERENCES_PLUGIN_AMBIENT_NOISE_SILENCE_THRESHO
     
     AWAREStorage * storage = nil;
     
-    wav2vec2Path = [[NSBundle mainBundle] URLForResource:@"wav2vec2" withExtension:@"ptl"];
-    //module = [[InferenceModule alloc] initWithFileAtPath:wav2vec2Path];
-//    @try {
-//        module = [[InferenceModule alloc] initWithFileAtPath:wav2vec2Path];
-//    } @catch (NSException *exception) {
-//        NSLog(@"[WARNING] No Object Model at %@", wav2vec2Path);
-//    } @finally {
-//        NSLog(@"tried initializing wav2vec2");
-//    }
+
+    //wav2vec2Path = [[NSBundle mainBundle] URLForResource:@"wav2vec2" withExtension:@"ptl"];
+    wav2vec2Path = @"/Users/alisonqiu/Downloads/swiftApps/ios-demo-app/SpeechRecognition/SpeechRecognition/wav2vec2.ptl";
+    module = [[InferenceModule alloc] initWithFileAtPath:wav2vec2Path];
+    @try {
+        module = [[InferenceModule alloc] initWithFileAtPath:wav2vec2Path];
+    } @catch (NSException *exception) {
+        NSLog(@"[WARNING] No Object Model at %@", wav2vec2Path);
+    } @finally {
+        NSLog(@"tried initializing wav2vec2");
+    }
 
     
     if (dbType == AwareDBTypeJSON) {
@@ -338,7 +339,9 @@ NSString * const _Nonnull AWARE_PREFERENCES_PLUGIN_AMBIENT_NOISE_SILENCE_THRESHO
             if(sender != nil){
                 number = [[(NSDictionary * )sender objectForKey:self->KEY_AUDIO_CLIP_NUMBER] intValue];
             }
-            NSLog(@"AN: will start saveAudioDataWithNumber");
+            NSLog(@"first find dnn_res then saveAudioDataWithNumber");
+            audio_url = [self getAudioFilePathWithNumber:number];
+            NSLog(@"audio_url: ", self->audio_url);
             [self saveAudioDataWithNumber:number];
             
             // init variables
@@ -406,8 +409,7 @@ NSString * const _Nonnull AWARE_PREFERENCES_PLUGIN_AMBIENT_NOISE_SILENCE_THRESHO
     //[dict setObject:@"" forKey:KEY_AMBIENT_NOISE_RAW];
     [dict setObject:_dnn_res forKey:KEY_AMBIENT_DNN_RES];
     
-    audio_url = [self getAudioFilePathWithNumber:number];
-    NSLog(@"audio_url: ", audio_url);
+
     if(isSaveRawData){
         NSData * data = [NSData dataWithContentsOfURL:[self getAudioFilePathWithNumber:number]];
         [dict setObject:[data base64EncodedStringWithOptions:0] forKey:KEY_AMBIENT_NOISE_RAW];
@@ -512,8 +514,8 @@ NSString * const _Nonnull AWARE_PREFERENCES_PLUGIN_AMBIENT_NOISE_SILENCE_THRESHO
 
     //rms in AN is 0.030499
 
-    _dnn_res = [self.delegate audioDidSave:audio_url];
-    //NSLog(@"res in AN is %@", _dnn_res);
+    _dnn_res = [module recognize:*buffer bufLength:bufferSize];
+    NSLog(@"res in AN is %@ w buffersize %i", _dnn_res,bufferSize);
     // calculate module prediction
     //NSString *dnn_res = [module recognize:*buffer bufLength:bufferSize];
     //NSlog("-----------dnn_res %@ \n",dnn_res);
@@ -674,13 +676,13 @@ NSString * const _Nonnull AWARE_PREFERENCES_PLUGIN_AMBIENT_NOISE_SILENCE_THRESHO
     //    [self setLatestValue:[NSString stringWithFormat:@"dB:%f, RMS:%f, Frequency:%f", db, rms, maxFrequency]];
 }
 
-- (NSString *)audioDidSave:(NSURL*)audio_url
+- (NSString *)audioDidSave:(NSURL *)audio_url
 {
 
         
         if(audio_url.isFileURL){
             if ([self.delegate respondsToSelector:@selector(audioDidSave:)]) {
-                //return @"call back in audioDidSave:(NSURL*)audio_url to be replaced";
+                //return [module recognize:*buffer bufLength:bufferSize]
                 return [self.delegate audioDidSave:audio_url];
             }else{
                 return @"error in [self.delegate audioDidSave:audio_url]";
