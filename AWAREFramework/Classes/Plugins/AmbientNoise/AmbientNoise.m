@@ -9,7 +9,7 @@
 #import "AmbientNoise.h"
 #import "AudioAnalysis.h"
 #import "EntityAmbientNoise+CoreDataClass.h"
-//#import "InferenceModule.h"
+#import "InferenceModule.h"
 
 static vDSP_Length const FFTViewControllerFFTWindowSize = 4096;
 
@@ -33,6 +33,7 @@ NSString * const _Nonnull AWARE_PREFERENCES_PLUGIN_AMBIENT_NOISE_SILENCE_THRESHO
     NSString * KEY_AMBIENT_NOISE_SILENT;
     NSString * KEY_AMBIENT_NOISE_SILENT_THRESHOLD;
     NSString * KEY_AMBIENT_NOISE_RAW;
+    NSString * KEY_AMBIENT_DNN_RES;
     
     NSTimer *mainTimer;
     
@@ -78,6 +79,7 @@ NSString * const _Nonnull AWARE_PREFERENCES_PLUGIN_AMBIENT_NOISE_SILENCE_THRESHO
     KEY_AMBIENT_NOISE_SILENT    = @"is_silent";
     KEY_AMBIENT_NOISE_SILENT_THRESHOLD = @"double_silent_threshold";
     KEY_AMBIENT_NOISE_RAW       = @"raw";
+    KEY_AMBIENT_DNN_RES         = @"dnn_res";
     
     AWAREStorage * storage = nil;
     
@@ -95,9 +97,9 @@ NSString * const _Nonnull AWARE_PREFERENCES_PLUGIN_AMBIENT_NOISE_SILENCE_THRESHO
     if (dbType == AwareDBTypeJSON) {
         storage = [[JSONStorage alloc] initWithStudy:study sensorName:SENSOR_AMBIENT_NOISE];
     }else if(dbType == AwareDBTypeCSV){
-        NSArray * header = @[KEY_AMBIENT_NOISE_TIMESTAMP,KEY_AMBIENT_NOISE_DEVICE_ID,KEY_AMBIENT_NOISE_FREQUENCY,KEY_AMBIENT_NOISE_DECIDELS,KEY_AMBIENT_NOISE_RMS,KEY_AMBIENT_NOISE_SILENT,KEY_AMBIENT_NOISE_SILENT_THRESHOLD,KEY_AMBIENT_NOISE_RAW];
+        NSArray * header = @[KEY_AMBIENT_NOISE_TIMESTAMP,KEY_AMBIENT_NOISE_DEVICE_ID,KEY_AMBIENT_NOISE_FREQUENCY,KEY_AMBIENT_NOISE_DECIDELS,KEY_AMBIENT_NOISE_RMS,KEY_AMBIENT_NOISE_SILENT,KEY_AMBIENT_NOISE_SILENT_THRESHOLD,KEY_AMBIENT_NOISE_RAW,KEY_AMBIENT_DNN_RES];
         
-            NSArray * headerTypes  = @[@(CSVTypeReal),@(CSVTypeText),@(CSVTypeReal),@(CSVTypeReal),@(CSVTypeReal),@(CSVTypeInteger),@(CSVTypeReal),@(CSVTypeText)];
+            NSArray * headerTypes  = @[@(CSVTypeReal),@(CSVTypeText),@(CSVTypeReal),@(CSVTypeReal),@(CSVTypeReal),@(CSVTypeInteger),@(CSVTypeReal),@(CSVTypeText),@(CSVTypeText)];
         storage = [[CSVStorage alloc] initWithStudy:study sensorName:SENSOR_AMBIENT_NOISE headerLabels:header headerTypes:headerTypes];
     }else{
         storage = [[SQLiteStorage alloc] initWithStudy:study sensorName:SENSOR_AMBIENT_NOISE entityName:NSStringFromClass([EntityAmbientNoise class])
@@ -113,6 +115,7 @@ NSString * const _Nonnull AWARE_PREFERENCES_PLUGIN_AMBIENT_NOISE_SILENCE_THRESHO
                                             ambientNoise.is_silent = [data objectForKey:self->KEY_AMBIENT_NOISE_SILENT];
                                             ambientNoise.double_silent_threshold = [data objectForKey:self->KEY_AMBIENT_NOISE_SILENT_THRESHOLD];
                                             ambientNoise.raw = [data objectForKey:self->KEY_AMBIENT_NOISE_RAW];
+            ambientNoise.dnn_res = [data objectForKey:self->KEY_AMBIENT_DNN_RES];
                                             
                                         }];
     }
@@ -121,8 +124,8 @@ NSString * const _Nonnull AWARE_PREFERENCES_PLUGIN_AMBIENT_NOISE_SILENCE_THRESHO
                              storage:storage];
     if (self) {
 
-        _frequencyMin     = 5;
-        _sampleSize       = 1;
+        _frequencyMin     = 1;
+        _sampleSize       = 10;
         _silenceThreshold = 50;
         _sampleDuration   = 6;
         // isSaveRawData = YES;
@@ -157,6 +160,7 @@ NSString * const _Nonnull AWARE_PREFERENCES_PLUGIN_AMBIENT_NOISE_SILENCE_THRESHO
     [query appendFormat:@"%@ integer default 0,", KEY_AMBIENT_NOISE_SILENT];
     [query appendFormat:@"%@ real default 0,",    KEY_AMBIENT_NOISE_SILENT_THRESHOLD];
     [query appendFormat:@"%@ text default ''",    KEY_AMBIENT_NOISE_RAW];
+    [query appendFormat:@"%@ text default 'dnn default'",    KEY_AMBIENT_DNN_RES];
     [self.storage createDBTableOnServerWithQuery:query];
 }
 
@@ -311,12 +315,10 @@ NSString * const _Nonnull AWARE_PREFERENCES_PLUGIN_AMBIENT_NOISE_SILENCE_THRESHO
                                            fileType:EZRecorderFileTypeWAV
                                            delegate:self];
 
-        
-        NSLog(@"startRecoding: init recorder success");
+
     }
     
     [self.microphone startFetchingAudio];
-    NSLog(@"startRecoding: [self.microphone startFetchingAudio] success");
 
     _isRecording = YES;
     [self performSelector:@selector(stopRecording:)
@@ -401,7 +403,9 @@ NSString * const _Nonnull AWARE_PREFERENCES_PLUGIN_AMBIENT_NOISE_SILENCE_THRESHO
     [dict setObject:[NSNumber numberWithDouble:rms] forKey:KEY_AMBIENT_NOISE_RMS];
     [dict setObject:[NSNumber numberWithBool:[AudioAnalysis isSilent:rms threshold:_silenceThreshold]] forKey:KEY_AMBIENT_NOISE_SILENT];
     [dict setObject:[NSNumber numberWithInteger:_silenceThreshold] forKey:KEY_AMBIENT_NOISE_SILENT_THRESHOLD];
-    // [dict setObject:@"" forKey:KEY_AMBIENT_NOISE_RAW];
+    //[dict setObject:@"" forKey:KEY_AMBIENT_NOISE_RAW];
+    [dict setObject:_dnn_res forKey:KEY_AMBIENT_DNN_RES];
+    
     audio_url = [self getAudioFilePathWithNumber:number];
     NSLog(@"audio_url: ", audio_url);
     if(isSaveRawData){
@@ -500,21 +504,16 @@ NSString * const _Nonnull AWARE_PREFERENCES_PLUGIN_AMBIENT_NOISE_SILENCE_THRESHO
       hasAudioReceived:(float **)buffer
         withBufferSize:(UInt32)bufferSize
   withNumberOfChannels:(UInt32)numberOfChannels{
-
+    //TODO: change to dnn
     float fft_res = *[self.fft computeFFTWithBuffer:buffer[0] withBufferSize:bufferSize];
 
-    //self.fft calculated by AN: 0.000000
-    
-    // Calculate the RMS with buffer and bufferSize
-    // NOTE: 1000
-    //
-    //TODO: add *buffer bufferSize to dict
+
     rms = [EZAudioUtilities RMS:*buffer length:bufferSize] * 1000;
 
     //rms in AN is 0.030499
 
-    NSString *res = [self.delegate audioDidSave:audio_url];
-    //NSLog(@"res in AN is %@", res);
+    _dnn_res = [self.delegate audioDidSave:audio_url];
+    //NSLog(@"res in AN is %@", _dnn_res);
     // calculate module prediction
     //NSString *dnn_res = [module recognize:*buffer bufLength:bufferSize];
     //NSlog("-----------dnn_res %@ \n",dnn_res);
@@ -569,7 +568,7 @@ NSString * const _Nonnull AWARE_PREFERENCES_PLUGIN_AMBIENT_NOISE_SILENCE_THRESHO
 }
 
 //------------------------------------------------------------------------------
-//TODO: call function (maybe this?) in VC (instead of audioRecorderDidFinishRecording) to get the url of audio recording for inference
+
 /**
  Returns back the buffer list containing the audio received. This occurs on the background thread so any drawing code must explicity perform its functions on the main thread.
  @param microphone       The instance of the EZMicrophone that triggered the event.
@@ -681,7 +680,10 @@ NSString * const _Nonnull AWARE_PREFERENCES_PLUGIN_AMBIENT_NOISE_SILENCE_THRESHO
         
         if(audio_url.isFileURL){
             if ([self.delegate respondsToSelector:@selector(audioDidSave:)]) {
+                //return @"call back in audioDidSave:(NSURL*)audio_url to be replaced";
                 return [self.delegate audioDidSave:audio_url];
+            }else{
+                return @"error in [self.delegate audioDidSave:audio_url]";
             }
         }
     return @"doesn't respond to selector";

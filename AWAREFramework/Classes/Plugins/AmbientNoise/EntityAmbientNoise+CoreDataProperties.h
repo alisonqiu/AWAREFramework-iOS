@@ -23,6 +23,7 @@ NS_ASSUME_NONNULL_BEGIN
 @property (nullable, nonatomic, copy) NSNumber *is_silent;
 @property (nullable, nonatomic, copy) NSString *raw;
 @property (nullable, nonatomic, copy) NSNumber *timestamp;
+@property (nullable, nonatomic, copy) NSString *dnn_res;
 
 @end
 

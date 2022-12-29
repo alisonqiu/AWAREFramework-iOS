@@ -22,5 +22,6 @@
 @dynamic is_silent;
 @dynamic raw;
 @dynamic timestamp;
+@dynamic dnn_res;
 
 @end

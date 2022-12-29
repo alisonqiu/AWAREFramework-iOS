@@ -61,13 +61,13 @@ extern NSString * _Nonnull const AWARE_PREFERENCES_PLUGIN_AMBIENT_NOISE_SILENCE_
 @optional
 
 //- (void)recorderDidClose:(EZRecorder *)recorder;
-- (NSString *)audioDidSave:(NSURL *)audio_url;
+- (NSString *_Nullable)audioDidSave:(NSURL *_Nullable)audio_url;
 @end
 
 
 @interface AmbientNoise : AWARESensor <AWARESensorDelegate, EZMicrophoneDelegate, EZRecorderDelegate, EZAudioFFTDelegate, CXCallObserverDelegate>
 
-@property (nonatomic, weak) id<AWAREAmbientNoiseDelegate> delegate;
+@property (nonatomic, weak, nullable) id<AWAREAmbientNoiseDelegate> delegate;
 //
 // The microphone component
 //
@@ -94,6 +94,7 @@ extern NSString * _Nonnull const AWARE_PREFERENCES_PLUGIN_AMBIENT_NOISE_SILENCE_
 @property int sampleSize;
 @property double sampleDuration;
 @property int silenceThreshold;
+@property NSString* dnn_res;
 
 - (BOOL) isSaveRawData;
 - (void) saveRawData:(BOOL)state;
