@@ -25,10 +25,11 @@ Pod::Spec.new do |s|
   # s.screenshots     = 'www.example.com/screenshots_1', 'www.example.com/screenshots_2'
   s.license          = { :type => 'Apache2', :file => 'LICENSE' }
   s.author           = { 'Yuuki Nishiyama' => 'yuukin@iis.u-tokyo.ac.jp' }
-  s.source           = { :git => 'https://github.com/tetujin/AWAREFramework-iOS.git', :tag => s.version.to_s }
+  s.source           = { :git => 'https://github.com/alisonqiu/AWAREFramework-iOS.git', :tag => s.version.to_s }
   # s.social_media_url = 'https://twitter.com/<TWITTER_USERNAME>'
 
   s.ios.deployment_target = '10.1'
+  #s.dependency 'LibTorch', '~> 1.10.0'
   
 #  s.pod_target_xcconfig = {
 #      'SWIFT_VERSION' => '5.0',
@@ -91,6 +92,7 @@ Pod::Spec.new do |s|
       cs.dependency 'TrueTime', '~> 5.0.3'
       cs.dependency 'TPCircularBuffer', '~> 1.6'
       cs.dependency 'macros_blocks', '~> 0.0.4'
+      cs.dependency 'LibTorch', '~> 1.10.0'
   end
 
   s.default_subspec = 'Core'
