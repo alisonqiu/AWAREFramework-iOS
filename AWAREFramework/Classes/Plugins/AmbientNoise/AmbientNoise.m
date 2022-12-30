@@ -10,6 +10,7 @@
 #import "AudioAnalysis.h"
 #import "EntityAmbientNoise+CoreDataClass.h"
 #import "InferenceModule.h"
+#import <AVFoundation/AVFoundation.h>
 
 static vDSP_Length const FFTViewControllerFFTWindowSize = 4096;
 
@@ -340,8 +341,7 @@ NSString * const _Nonnull AWARE_PREFERENCES_PLUGIN_AMBIENT_NOISE_SILENCE_THRESHO
                 number = [[(NSDictionary * )sender objectForKey:self->KEY_AUDIO_CLIP_NUMBER] intValue];
             }
             NSLog(@"first find dnn_res then saveAudioDataWithNumber");
-            audio_url = [self getAudioFilePathWithNumber:number];
-            NSLog(@"audio_url: ", self->audio_url);
+
             [self saveAudioDataWithNumber:number];
             
             // init variables
@@ -411,22 +411,59 @@ NSString * const _Nonnull AWARE_PREFERENCES_PLUGIN_AMBIENT_NOISE_SILENCE_THRESHO
     
 
     if(isSaveRawData){
-        NSData * data = [NSData dataWithContentsOfURL:[self getAudioFilePathWithNumber:number]];
-        [dict setObject:[data base64EncodedStringWithOptions:0] forKey:KEY_AMBIENT_NOISE_RAW];
-    }else{
-        [dict setObject:@"" forKey:KEY_AMBIENT_NOISE_RAW];
-
-        NSURL * url = [self getAudioFilePathWithNumber:number];
-        NSError * error = nil;
-        if (url != nil) {
-            if ([NSFileManager.defaultManager removeItemAtURL:url error:&error] ){
-//                if (self.isDebug) NSLog(@"[%@] Remove an audio file -> Success: %@", self.getSensorName, url.debugDescription);
-                NSLog(@"[%@] Remove an audio file -> Success", self.getSensorName);
-            }else{
-                if (self.isDebug) NSLog(@"[%@] Remove an audio file -> Error: %@",   self.getSensorName, url.debugDescription);
-                NSLog(@"[%@] Remove an audio file -> Success", self.getSensorName);
+             NSData * data = [NSData dataWithContentsOfURL:[self getAudioFilePathWithNumber:number]];
+             [dict setObject:[data base64EncodedStringWithOptions:0] forKey:KEY_AMBIENT_NOISE_RAW];
+      
+        }else{
+            [dict setObject:@"" forKey:KEY_AMBIENT_NOISE_RAW];
+            NSURL * url = [self getAudioFilePathWithNumber:number];
+             NSError * error = nil;
+             if (url != nil) {
+                 if ([NSFileManager.defaultManager removeItemAtURL:url error:&error] ){
+     //                if (self.isDebug) NSLog(@"[%@] Remove an audio file -> Success: %@", self.getSensorName, url.debugDescription);
+                     NSLog(@"[%@] Remove an audio file -> Success", self.getSensorName);
+                 }else{
+                     if (self.isDebug) NSLog(@"[%@] Remove an audio file -> Error: %@",   self.getSensorName, url.debugDescription);
+                     NSLog(@"[%@] Remove an audio file -> Success", self.getSensorName);
             }
         }
+    
+        
+        //TODO: set Av dnn res here
+        NSURL * audioURL = url;
+        //NSURL * audioURL = [NSURL fileURLWithPath:@"/Users/alisonqiu/Downloads/swiftApps/ios-demo-app/SpeechRecognition/scent_of_a_woman_future.wav"];
+
+        //AVAudioFile *file = [[AVAudioFile alloc] initForReading:audioURL error:&error];
+        AVAudioFile *file = [[AVAudioFile alloc] initForReading: audioURL error:&error];
+        
+        //let format = AVAudioFormat(commonFormat: .pcmFormatFloat32, sampleRate: file.fileFormat.sampleRate, channels: 1, interleaved: false)
+        // let buf = AVAudioPCMBuffer(pcmFormat: format!, frameCapacity: AVAudioFrameCount(file.length))
+        
+        NSAssert(file != nil, @"Error creating audioFile, %@", error.localizedDescription);
+
+        AVAudioFramePosition fileLength = file.length; //frame length of the audio file
+        float sampleRate = file.fileFormat.sampleRate; //sample rate (in Hz) of the audio file
+
+        NSMutableArray *buf = [NSMutableArray array];
+        NSMutableArray *framePositions = [NSMutableArray array];
+        //TODO: change to AVAudioFrameCount(file.length))
+        const AVAudioFrameCount kBufferFrameCapacity = 1024 * 1024L; //the size of my buffer...can be made bigger or smaller 512 * 1024L would be half the size
+            while (file.framePosition < fileLength) { //each iteration reads in kBufferFrameCapacity frames of the audio file and stores it in a buffer
+                [framePositions addObject:[NSNumber numberWithLongLong:file.framePosition]];
+                AVAudioPCMBuffer *readBuffer = [[AVAudioPCMBuffer alloc] initWithPCMFormat:file.processingFormat frameCapacity:kBufferFrameCapacity];
+                if (![file readIntoBuffer:readBuffer error:&error]) {
+                    NSLog(@"failed to read audio file: %@", error);
+                    return;
+                }
+                if (readBuffer.frameLength == 0) { //if we've come to the end of the file, end the loop
+                    break;
+                }
+                [buf addObject:readBuffer];
+            }
+        NSLog(@"buf: %@", buf);
+        //var floatArray = Array(UnsafeBufferPointer(start: buf?.floatChannelData![0], count:Int(buf!.frameLength)))
+        
+        
     }
     
     [self setLatestData:dict];
@@ -514,11 +551,10 @@ NSString * const _Nonnull AWARE_PREFERENCES_PLUGIN_AMBIENT_NOISE_SILENCE_THRESHO
 
     //rms in AN is 0.030499
 
-    _dnn_res = [module recognize:*buffer bufLength:bufferSize];
-    NSLog(@"res in AN is %@ w buffersize %i", _dnn_res,bufferSize);
-    // calculate module prediction
-    //NSString *dnn_res = [module recognize:*buffer bufLength:bufferSize];
-    //NSlog("-----------dnn_res %@ \n",dnn_res);
+//    _dnn_res = [module recognize:*buffer bufLength:bufferSize];
+//    NSLog(@"res in AN is %@ w buffersize %i", _dnn_res,bufferSize);
+//    _dnn_res = @"to be changed";
+
     // Decibel Calculation.
     // https://github.com/syedhali/EZAudio/issues/50
     //
@@ -627,6 +663,7 @@ NSString * const _Nonnull AWARE_PREFERENCES_PLUGIN_AMBIENT_NOISE_SILENCE_THRESHO
 }
 
 - (NSURL *)getAudioFilePathWithNumber:(int)number{
+
     return [NSURL fileURLWithPath:[NSString stringWithFormat:@"%@/%@/%d_%@",
                                    [self applicationDocumentsDirectory],
                                    kRawAudioDirectory,

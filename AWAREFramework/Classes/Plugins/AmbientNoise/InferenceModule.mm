@@ -52,11 +52,11 @@
         }
         
         c10::InferenceMode guard;
-        NSLog(@"----------inputs are: %@ \n",inputs);
+        //NSLog(@"----------inputs are: %@ \n",inputs);
         CFTimeInterval startTime = CACurrentMediaTime();
-        NSLog(@"----------startTime: %f \n",startTime);
+        //NSLog(@"----------startTime: %f \n",startTime);
         auto result = _impl.forward({ tensorInputs }).toStringRef();
-        NSLog(@"----------result:  \n");
+        //NSLog(@"----------result:  \n");
         CFTimeInterval elapsedTime = CACurrentMediaTime() - startTime;
         NSLog(@"inference time:%f", elapsedTime);
             
