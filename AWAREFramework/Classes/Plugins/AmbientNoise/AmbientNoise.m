@@ -104,6 +104,7 @@ NSString * const _Nonnull AWARE_PREFERENCES_PLUGIN_AMBIENT_NOISE_SILENCE_THRESHO
             NSArray * headerTypes  = @[@(CSVTypeReal),@(CSVTypeText),@(CSVTypeReal),@(CSVTypeReal),@(CSVTypeReal),@(CSVTypeInteger),@(CSVTypeReal),@(CSVTypeText),@(CSVTypeText)];
         storage = [[CSVStorage alloc] initWithStudy:study sensorName:SENSOR_AMBIENT_NOISE headerLabels:header headerTypes:headerTypes];
     }else{
+        //TODO: check EntityAmbientNoise is an entity name in storage
         storage = [[SQLiteStorage alloc] initWithStudy:study sensorName:SENSOR_AMBIENT_NOISE entityName:NSStringFromClass([EntityAmbientNoise class])
                                         insertCallBack:^(NSDictionary *data, NSManagedObjectContext *childContext, NSString *entity) {
                                             
@@ -356,6 +357,7 @@ NSString * const _Nonnull AWARE_PREFERENCES_PLUGIN_AMBIENT_NOISE_SILENCE_THRESHO
             [self.recorder closeAudioFile];
             NSString * _dnn_res = [self audioDidSave:[self getAudioFilePathWithNumber:number]];
             NSLog(@"res in AN is %@ ", _dnn_res);
+            //[self saveAudioDataWithNumber:number];
             if (self->audioFileGenerationHandler != nil) {
                 self->audioFileGenerationHandler([self getAudioFilePathWithNumber:number]);
             }
@@ -410,7 +412,14 @@ NSString * const _Nonnull AWARE_PREFERENCES_PLUGIN_AMBIENT_NOISE_SILENCE_THRESHO
     [dict setObject:[NSNumber numberWithBool:[AudioAnalysis isSilent:rms threshold:_silenceThreshold]] forKey:KEY_AMBIENT_NOISE_SILENT];
     [dict setObject:[NSNumber numberWithInteger:_silenceThreshold] forKey:KEY_AMBIENT_NOISE_SILENT_THRESHOLD];
     //[dict setObject:@"" forKey:KEY_AMBIENT_NOISE_RAW];
-    [dict setObject:@"_dnn_res" forKey:KEY_AMBIENT_DNN_RES];
+    //TODO: direct call
+    if(_dnn_res){
+        [dict setObject:_dnn_res forKey:KEY_AMBIENT_DNN_RES];
+    }else{
+        NSLog(@"no dnn res yet");
+        return;
+    }
+
     
 
     if(isSaveRawData){
@@ -439,6 +448,10 @@ NSString * const _Nonnull AWARE_PREFERENCES_PLUGIN_AMBIENT_NOISE_SILENCE_THRESHO
     [self setLatestData:dict];
     
     @try {
+        NSLog(@"print dict");
+        for (id key in dict) {
+            NSLog(@"key: %@, value: %@ \n", key, [dict objectForKey:key]);
+        }
         [self.storage saveDataWithDictionary:dict buffer:YES saveInMainThread:NO];
         
         SensorEventHandler handler = [self getSensorEventHandler];
@@ -690,6 +703,7 @@ NSString * const _Nonnull AWARE_PREFERENCES_PLUGIN_AMBIENT_NOISE_SILENCE_THRESHO
         if(audio_url.isFileURL){
             if ([self.delegate respondsToSelector:@selector(audioDidSave:)]) {
                 //return [module recognize:*buffer bufLength:bufferSize]
+                //TODO: [self saveAudioDataWithNumber:KEY_AUDIO_CLIP_NUMBER];
                 return [self.delegate audioDidSave:audio_url];
             }else{
                 return @"audio_url isFileURL is false";
