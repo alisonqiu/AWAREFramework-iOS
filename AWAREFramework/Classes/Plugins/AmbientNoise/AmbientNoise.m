@@ -340,6 +340,7 @@ NSString * const _Nonnull AWARE_PREFERENCES_PLUGIN_AMBIENT_NOISE_SILENCE_THRESHO
             if(sender != nil){
                 number = [[(NSDictionary * )sender objectForKey:self->KEY_AUDIO_CLIP_NUMBER] intValue];
             }
+            //TODO: first find dnn_res then saveAudioDataWithNumber w completion handler
             NSLog(@"first find dnn_res then saveAudioDataWithNumber");
 
             [self saveAudioDataWithNumber:number];
@@ -353,6 +354,8 @@ NSString * const _Nonnull AWARE_PREFERENCES_PLUGIN_AMBIENT_NOISE_SILENCE_THRESHO
             self.recorder = nil;
             
             [self.recorder closeAudioFile];
+            NSString * _dnn_res = [self audioDidSave:[self getAudioFilePathWithNumber:number]];
+            NSLog(@"res in AN is %@ ", _dnn_res);
             if (self->audioFileGenerationHandler != nil) {
                 self->audioFileGenerationHandler([self getAudioFilePathWithNumber:number]);
             }
@@ -407,12 +410,12 @@ NSString * const _Nonnull AWARE_PREFERENCES_PLUGIN_AMBIENT_NOISE_SILENCE_THRESHO
     [dict setObject:[NSNumber numberWithBool:[AudioAnalysis isSilent:rms threshold:_silenceThreshold]] forKey:KEY_AMBIENT_NOISE_SILENT];
     [dict setObject:[NSNumber numberWithInteger:_silenceThreshold] forKey:KEY_AMBIENT_NOISE_SILENT_THRESHOLD];
     //[dict setObject:@"" forKey:KEY_AMBIENT_NOISE_RAW];
-    [dict setObject:_dnn_res forKey:KEY_AMBIENT_DNN_RES];
+    [dict setObject:@"_dnn_res" forKey:KEY_AMBIENT_DNN_RES];
     
 
     if(isSaveRawData){
              NSData * data = [NSData dataWithContentsOfURL:[self getAudioFilePathWithNumber:number]];
-             [dict setObject:[data base64EncodedStringWithOptions:0] forKey:KEY_AMBIENT_NOISE_RAW];
+             [dict setObject:@"[data base64EncodedStringWithOptions:0] "forKey:KEY_AMBIENT_NOISE_RAW];
       
         }else{
             [dict setObject:@"" forKey:KEY_AMBIENT_NOISE_RAW];
@@ -428,40 +431,7 @@ NSString * const _Nonnull AWARE_PREFERENCES_PLUGIN_AMBIENT_NOISE_SILENCE_THRESHO
             }
         }
     
-        
-        //TODO: set Av dnn res here
-        NSURL * audioURL = url;
-        //NSURL * audioURL = [NSURL fileURLWithPath:@"/Users/alisonqiu/Downloads/swiftApps/ios-demo-app/SpeechRecognition/scent_of_a_woman_future.wav"];
 
-        //AVAudioFile *file = [[AVAudioFile alloc] initForReading:audioURL error:&error];
-        AVAudioFile *file = [[AVAudioFile alloc] initForReading: audioURL error:&error];
-        
-        //let format = AVAudioFormat(commonFormat: .pcmFormatFloat32, sampleRate: file.fileFormat.sampleRate, channels: 1, interleaved: false)
-        // let buf = AVAudioPCMBuffer(pcmFormat: format!, frameCapacity: AVAudioFrameCount(file.length))
-        
-        NSAssert(file != nil, @"Error creating audioFile, %@", error.localizedDescription);
-
-        AVAudioFramePosition fileLength = file.length; //frame length of the audio file
-        float sampleRate = file.fileFormat.sampleRate; //sample rate (in Hz) of the audio file
-
-        NSMutableArray *buf = [NSMutableArray array];
-        NSMutableArray *framePositions = [NSMutableArray array];
-        //TODO: change to AVAudioFrameCount(file.length))
-        const AVAudioFrameCount kBufferFrameCapacity = 1024 * 1024L; //the size of my buffer...can be made bigger or smaller 512 * 1024L would be half the size
-            while (file.framePosition < fileLength) { //each iteration reads in kBufferFrameCapacity frames of the audio file and stores it in a buffer
-                [framePositions addObject:[NSNumber numberWithLongLong:file.framePosition]];
-                AVAudioPCMBuffer *readBuffer = [[AVAudioPCMBuffer alloc] initWithPCMFormat:file.processingFormat frameCapacity:kBufferFrameCapacity];
-                if (![file readIntoBuffer:readBuffer error:&error]) {
-                    NSLog(@"failed to read audio file: %@", error);
-                    return;
-                }
-                if (readBuffer.frameLength == 0) { //if we've come to the end of the file, end the loop
-                    break;
-                }
-                [buf addObject:readBuffer];
-            }
-        NSLog(@"buf: %@", buf);
-        //var floatArray = Array(UnsafeBufferPointer(start: buf?.floatChannelData![0], count:Int(buf!.frameLength)))
         
         
     }
@@ -722,10 +692,53 @@ NSString * const _Nonnull AWARE_PREFERENCES_PLUGIN_AMBIENT_NOISE_SILENCE_THRESHO
                 //return [module recognize:*buffer bufLength:bufferSize]
                 return [self.delegate audioDidSave:audio_url];
             }else{
-                return @"error in [self.delegate audioDidSave:audio_url]";
+                return @"audio_url isFileURL is false";
             }
         }
     return @"doesn't respond to selector";
+    
+    
+//    //TODO: set Av dnn res here
+//    NSError * error = nil;
+//    NSURL * audioURL = audio_url;
+//    //NSURL * audioURL = [NSURL fileURLWithPath:@"/Users/alisonqiu/Downloads/swiftApps/ios-demo-app/SpeechRecognition/scent_of_a_woman_future.wav"];
+//
+//    AVAudioFile *file = [[AVAudioFile alloc] initForReading: audioURL error:&error];
+//
+//    NSAssert(file != nil, @"Error creating audioFile, %@", error.localizedDescription);
+//
+//    AVAudioFramePosition fileLength = file.length; //frame length of the audio file
+//    float sampleRate = file.fileFormat.sampleRate; //sample rate (in Hz) of the audio file
+//
+//    NSMutableArray *framePositions = [NSMutableArray array];
+//    const AVAudioFrameCount kBufferFrameCapacity = fileLength;
+//    AVAudioPCMBuffer *buf = [[AVAudioPCMBuffer alloc] initWithPCMFormat:file.processingFormat frameCapacity:kBufferFrameCapacity];
+//    if (![file readIntoBuffer:buf error:&error]) {
+//        return @"failed to read audio file";
+//    }
+//
+//
+//    //var floatArray = Array(UnsafeBufferPointer(start: buf?.floatChannelData![0], count:Int(buf!.frameLength)))
+//
+//    NSMutableArray *floatArray = [NSMutableArray new];
+//    for (AVAudioFrameCount i = 0; i < buf.frameLength; i++) {
+//        [floatArray addObject:@(buf.floatChannelData[0][i])];
+//    }
+//
+//    NSData *floatArray2 =[[NSData alloc] initWithBytes:buf.floatChannelData[0] length:buf.frameLength * 4];
+//    dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0), ^{
+//
+////            [floatArray enumerateObjectsUsingBlock:^(id  _Nonnull obj, NSUInteger idx, BOOL * _Nonnull stop) {
+////                NSString * result = [module recognize:&obj bufLength:recordingSampleRate*_sampleDuration];
+////            }];
+//
+//        [floatArray2 enumerateByteRangesUsingBlock:^(const void * _Nonnull bytes, NSRange byteRange, BOOL * _Nonnull stop) {
+//            NSString * result = [module recognize:bytes bufLength:recordingSampleRate*_sampleDuration];
+//        }];
+//
+//    });
+//
+//    return @"buf";
 
 
     }
