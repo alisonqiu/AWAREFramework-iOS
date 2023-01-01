@@ -341,10 +341,8 @@ NSString * const _Nonnull AWARE_PREFERENCES_PLUGIN_AMBIENT_NOISE_SILENCE_THRESHO
             if(sender != nil){
                 number = [[(NSDictionary * )sender objectForKey:self->KEY_AUDIO_CLIP_NUMBER] intValue];
             }
-            //TODO: first find dnn_res then saveAudioDataWithNumber w completion handler
-            NSLog(@"first find dnn_res then saveAudioDataWithNumber");
 
-            [self saveAudioDataWithNumber:number];
+            //[self saveAudioDataWithNumber:number];
             
             // init variables
             self->maxFrequency = 0;
@@ -390,7 +388,8 @@ NSString * const _Nonnull AWARE_PREFERENCES_PLUGIN_AMBIENT_NOISE_SILENCE_THRESHO
 ////////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////
 
-- (void) saveAudioDataWithNumber:(int)number {
+- (void) saveAudioDataWithNumber:(int)number andResult:(NSString*)res {
+    NSLog(@"inside saveAudioDataWithNumber");
     NSNumber * unixtime = [AWAREUtils getUnixTimestamp:[NSDate new]];
     
     [self setLatestValue:[NSString stringWithFormat:@"[%d] dB:%f, RMS:%f, Frequency:%f", number, db, rms, maxFrequency]];
@@ -413,8 +412,8 @@ NSString * const _Nonnull AWARE_PREFERENCES_PLUGIN_AMBIENT_NOISE_SILENCE_THRESHO
     [dict setObject:[NSNumber numberWithInteger:_silenceThreshold] forKey:KEY_AMBIENT_NOISE_SILENT_THRESHOLD];
     //[dict setObject:@"" forKey:KEY_AMBIENT_NOISE_RAW];
     //TODO: direct call
-    if(_dnn_res){
-        [dict setObject:_dnn_res forKey:KEY_AMBIENT_DNN_RES];
+    if(res){
+        [dict setObject:res forKey:KEY_AMBIENT_DNN_RES];
     }else{
         NSLog(@"no dnn res yet");
         return;
@@ -448,7 +447,7 @@ NSString * const _Nonnull AWARE_PREFERENCES_PLUGIN_AMBIENT_NOISE_SILENCE_THRESHO
     [self setLatestData:dict];
     
     @try {
-        NSLog(@"print dict");
+        NSLog(@"---------print dict");
         for (id key in dict) {
             NSLog(@"key: %@, value: %@ \n", key, [dict objectForKey:key]);
         }
@@ -527,20 +526,9 @@ NSString * const _Nonnull AWARE_PREFERENCES_PLUGIN_AMBIENT_NOISE_SILENCE_THRESHO
         withBufferSize:(UInt32)bufferSize
   withNumberOfChannels:(UInt32)numberOfChannels{
     //TODO: change to dnn
-    float fft_res = *[self.fft computeFFTWithBuffer:buffer[0] withBufferSize:bufferSize];
 
+    //rms = [EZAudioUtilities RMS:*buffer length:bufferSize] * 1000;
 
-    rms = [EZAudioUtilities RMS:*buffer length:bufferSize] * 1000;
-
-    //rms in AN is 0.030499
-
-//    _dnn_res = [module recognize:*buffer bufLength:bufferSize];
-//    NSLog(@"res in AN is %@ w buffersize %i", _dnn_res,bufferSize);
-//    _dnn_res = @"to be changed";
-
-    // Decibel Calculation.
-    // https://github.com/syedhali/EZAudio/issues/50
-    //
     float one     = 1.0;
     float meanVal = 0.0;
     float tiny    = 0.1;
@@ -551,41 +539,41 @@ NSString * const _Nonnull AWARE_PREFERENCES_PLUGIN_AMBIENT_NOISE_SILENCE_THRESHO
     
     float currentdb = 1.0 - (fabs(meanVal)/100);
     
-    if (lastdb == INFINITY || lastdb == -INFINITY || isnan(lastdb)) {
-        lastdb = 0.0;
-    }
-    float tempdb = ((1.0 - tiny)*lastdb) + tiny*currentdb;
-    //    if (tempdb == INFINITY && tempdb == -INFINITY) {
-    
-    bool isInfinity = false;
-    if (isinf(tempdb) ){
-        NSLog(@"[AmbientNoise] dB is INFINITY");
-        tempdb = 0.0;
-        isInfinity = true;
-    }
-    if(isinf(rms) ){
-        NSLog(@"[AmbientNoise] RMS is INFINITY");
-        rms = 0.0;
-        isInfinity = true;
-    }
-    if(isinf(maxFrequency)){
-        NSLog(@"[AmbientNoise] MAX Frequency is INFINITY");
-        maxFrequency = 0.0;
-        isInfinity = true;
-    }
-    
-    if (!isInfinity){
-        db = tempdb;
-        lastdb = tempdb;
-        
-        dispatch_async(dispatch_get_main_queue(),^{
-            // Visualize this data brah, buffer[0] = left channel, buffer[1] = right channel
-            //        [weakSelf.audioPlot updateBuffer:buffer[0] withBufferSize:bufferSize];
-            NSString * value = [NSString stringWithFormat:@"dB:%f, RMS:%f, Frequency:%f", self->db, self->rms, self->maxFrequency];
-            [self setLatestValue:value];
-            
-        });
-    }
+//    if (lastdb == INFINITY || lastdb == -INFINITY || isnan(lastdb)) {
+//        lastdb = 0.0;
+//    }
+//    float tempdb = ((1.0 - tiny)*lastdb) + tiny*currentdb;
+//    //    if (tempdb == INFINITY && tempdb == -INFINITY) {
+//
+//    bool isInfinity = false;
+//    if (isinf(tempdb) ){
+//        NSLog(@"[AmbientNoise] dB is INFINITY");
+//        tempdb = 0.0;
+//        isInfinity = true;
+//    }
+//    if(isinf(rms) ){
+//        NSLog(@"[AmbientNoise] RMS is INFINITY");
+//        rms = 0.0;
+//        isInfinity = true;
+//    }
+//    if(isinf(maxFrequency)){
+//        NSLog(@"[AmbientNoise] MAX Frequency is INFINITY");
+//        maxFrequency = 0.0;
+//        isInfinity = true;
+//    }
+//
+//    if (!isInfinity){
+//        db = tempdb;
+//        lastdb = tempdb;
+//
+//        dispatch_async(dispatch_get_main_queue(),^{
+//            // Visualize this data brah, buffer[0] = left channel, buffer[1] = right channel
+//            //        [weakSelf.audioPlot updateBuffer:buffer[0] withBufferSize:bufferSize];
+//            NSString * value = [NSString stringWithFormat:@"dB:%f, RMS:%f, Frequency:%f", self->db, self->rms, self->maxFrequency];
+//            [self setLatestValue:value];
+//
+//        });
+//    }
 }
 
 //------------------------------------------------------------------------------
@@ -676,17 +664,17 @@ NSString * const _Nonnull AWARE_PREFERENCES_PLUGIN_AMBIENT_NOISE_SILENCE_THRESHO
 /////////////////////////////////////////////
 ///////////////////////////////////////////////
 // FFT delegate
-- (void)        fft:(EZAudioFFT *)fft
- updatedWithFFTData:(float *)fftData
-         bufferSize:(vDSP_Length)bufferSize
-{
-    maxFrequency = [fft maxFrequency];
-    
-    if(self.fftDelegate != nil){
-        if ([self.fftDelegate respondsToSelector:@selector(fft:updatedWithFFTData:bufferSize:)]) {
-            [self.fftDelegate fft:fft updatedWithFFTData:fftData bufferSize:bufferSize];
-        }
-    }
+//- (void)        fft:(EZAudioFFT *)fft
+// updatedWithFFTData:(float *)fftData
+//         bufferSize:(vDSP_Length)bufferSize
+//{
+//    maxFrequency = [fft maxFrequency];
+//
+//    if(self.fftDelegate != nil){
+//        if ([self.fftDelegate respondsToSelector:@selector(fft:updatedWithFFTData:bufferSize:)]) {
+//            [self.fftDelegate fft:fft updatedWithFFTData:fftData bufferSize:bufferSize];
+//        }
+//    }
     
 //    for (int i = 0; i<bufferSize; i++) {
 //        if (fftData[i] > 0.01) {
@@ -694,68 +682,28 @@ NSString * const _Nonnull AWARE_PREFERENCES_PLUGIN_AMBIENT_NOISE_SILENCE_THRESHO
 //        }
 //    }
     //    [self setLatestValue:[NSString stringWithFormat:@"dB:%f, RMS:%f, Frequency:%f", db, rms, maxFrequency]];
-}
+//}
 
 - (NSString *)audioDidSave:(NSURL *)audio_url
 {
 
-        
+        //[self saveAudioDataWithNumber:[NSNumber numberWithChar:KEY_AUDIO_CLIP_NUMBER]]
         if(audio_url.isFileURL){
-            if ([self.delegate respondsToSelector:@selector(audioDidSave:)]) {
-                //return [module recognize:*buffer bufLength:bufferSize]
-                //TODO: [self saveAudioDataWithNumber:KEY_AUDIO_CLIP_NUMBER];
-                return [self.delegate audioDidSave:audio_url];
+            if ([self.delegate respondsToSelector:@selector(audioDidSave:completion:)]) {
+
+                [self.delegate audioDidSave:audio_url completion:^(NSString *result) {
+                    NSLog(@"called completion with result %@",result);
+                    [self saveAudioDataWithNumber:[NSNumber numberWithChar:self->KEY_AUDIO_CLIP_NUMBER] andResult:result];
+                }];
+                return @"called completion";
             }else{
                 return @"audio_url isFileURL is false";
             }
         }
     return @"doesn't respond to selector";
-    
-    
-//    //TODO: set Av dnn res here
-//    NSError * error = nil;
-//    NSURL * audioURL = audio_url;
-//    //NSURL * audioURL = [NSURL fileURLWithPath:@"/Users/alisonqiu/Downloads/swiftApps/ios-demo-app/SpeechRecognition/scent_of_a_woman_future.wav"];
-//
-//    AVAudioFile *file = [[AVAudioFile alloc] initForReading: audioURL error:&error];
-//
-//    NSAssert(file != nil, @"Error creating audioFile, %@", error.localizedDescription);
-//
-//    AVAudioFramePosition fileLength = file.length; //frame length of the audio file
-//    float sampleRate = file.fileFormat.sampleRate; //sample rate (in Hz) of the audio file
-//
-//    NSMutableArray *framePositions = [NSMutableArray array];
-//    const AVAudioFrameCount kBufferFrameCapacity = fileLength;
-//    AVAudioPCMBuffer *buf = [[AVAudioPCMBuffer alloc] initWithPCMFormat:file.processingFormat frameCapacity:kBufferFrameCapacity];
-//    if (![file readIntoBuffer:buf error:&error]) {
-//        return @"failed to read audio file";
-//    }
-//
-//
-//    //var floatArray = Array(UnsafeBufferPointer(start: buf?.floatChannelData![0], count:Int(buf!.frameLength)))
-//
-//    NSMutableArray *floatArray = [NSMutableArray new];
-//    for (AVAudioFrameCount i = 0; i < buf.frameLength; i++) {
-//        [floatArray addObject:@(buf.floatChannelData[0][i])];
-//    }
-//
-//    NSData *floatArray2 =[[NSData alloc] initWithBytes:buf.floatChannelData[0] length:buf.frameLength * 4];
-//    dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0), ^{
-//
-////            [floatArray enumerateObjectsUsingBlock:^(id  _Nonnull obj, NSUInteger idx, BOOL * _Nonnull stop) {
-////                NSString * result = [module recognize:&obj bufLength:recordingSampleRate*_sampleDuration];
-////            }];
-//
-//        [floatArray2 enumerateByteRangesUsingBlock:^(const void * _Nonnull bytes, NSRange byteRange, BOOL * _Nonnull stop) {
-//            NSString * result = [module recognize:bytes bufLength:recordingSampleRate*_sampleDuration];
-//        }];
-//
-//    });
-//
-//    return @"buf";
 
+}
 
-    }
     
 
 
