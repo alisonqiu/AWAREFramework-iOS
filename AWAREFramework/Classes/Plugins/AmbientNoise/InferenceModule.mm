@@ -45,10 +45,12 @@
         if (!floatInput) {
             return nil;
         }
-        NSMutableArray* inputs = [[NSMutableArray alloc] init];
+        //NSMutableArray* inputs = [[NSMutableArray alloc] init];
+        NSArray* inputs = [[NSArray alloc] init];
 
         for (int i = 0; i < bufLength; i++) {
-            [inputs addObject:@(floatInput[i])];
+            [inputs arrayByAddingObject:@(floatInput[i])];
+            //[inputs addObject:@(floatInput[i])];
         }
         
         c10::InferenceMode guard;

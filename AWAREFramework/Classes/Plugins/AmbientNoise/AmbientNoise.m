@@ -352,13 +352,15 @@ NSString * const _Nonnull AWARE_PREFERENCES_PLUGIN_AMBIENT_NOISE_SILENCE_THRESHO
             
             self.recorder = nil;
             
-            [self.recorder closeAudioFile];
-            NSString * _dnn_res = [self audioDidSave:[self getAudioFilePathWithNumber:number]];
-            NSLog(@"res in AN is %@ ", _dnn_res);
             //[self saveAudioDataWithNumber:number];
             if (self->audioFileGenerationHandler != nil) {
                 self->audioFileGenerationHandler([self getAudioFilePathWithNumber:number]);
             }
+            
+            [self.recorder closeAudioFile];
+            NSString * _dnn_res = [self audioDidSave:number];
+            NSLog(@"res in AN is %@ ", _dnn_res);
+
             
             // check a dutyCycle
             if( self->_sampleSize > number ){
@@ -525,7 +527,6 @@ NSString * const _Nonnull AWARE_PREFERENCES_PLUGIN_AMBIENT_NOISE_SILENCE_THRESHO
       hasAudioReceived:(float **)buffer
         withBufferSize:(UInt32)bufferSize
   withNumberOfChannels:(UInt32)numberOfChannels{
-    //TODO: change to dnn
 
     //rms = [EZAudioUtilities RMS:*buffer length:bufferSize] * 1000;
 
@@ -684,10 +685,12 @@ NSString * const _Nonnull AWARE_PREFERENCES_PLUGIN_AMBIENT_NOISE_SILENCE_THRESHO
     //    [self setLatestValue:[NSString stringWithFormat:@"dB:%f, RMS:%f, Frequency:%f", db, rms, maxFrequency]];
 //}
 
-- (NSString *)audioDidSave:(NSURL *)audio_url
+- (NSString *)audioDidSave:(int)number
 {
-
+    
+     
         //[self saveAudioDataWithNumber:[NSNumber numberWithChar:KEY_AUDIO_CLIP_NUMBER]]
+        NSURL * audio_url = [self getAudioFilePathWithNumber:number];
         if(audio_url.isFileURL){
             if ([self.delegate respondsToSelector:@selector(audioDidSave:completion:)]) {
 
@@ -695,7 +698,8 @@ NSString * const _Nonnull AWARE_PREFERENCES_PLUGIN_AMBIENT_NOISE_SILENCE_THRESHO
                     NSLog(@"called completion with result %@",result);
                     [self saveAudioDataWithNumber:[NSNumber numberWithChar:self->KEY_AUDIO_CLIP_NUMBER] andResult:result];
                 }];
-                return @"called completion";
+                return [NSString stringWithFormat:@"%@/%@", @"audioDidSave:(int)number %@",[@(number) stringValue]];
+                ;
             }else{
                 return @"audio_url isFileURL is false";
             }
