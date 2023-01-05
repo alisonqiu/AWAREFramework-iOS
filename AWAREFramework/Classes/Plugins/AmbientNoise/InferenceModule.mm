@@ -16,6 +16,7 @@
 @implementation InferenceModule {
     
     @protected torch::jit::mobile::Module _impl;
+
 }
 
 - (nullable instancetype)initWithFileAtPath:(NSString*)filePath {
@@ -38,20 +39,21 @@
 
 
 - (NSString*)recognize:(void*)wavBuffer bufLength:(int)bufLength{
+
     try {
         at::Tensor tensorInputs = torch::from_blob((void*)wavBuffer, {1, bufLength}, at::kFloat);
         
-        float* floatInput = tensorInputs.data_ptr<float>();
-        if (!floatInput) {
-            return nil;
-        }
-        //NSMutableArray* inputs = [[NSMutableArray alloc] init];
-        NSArray* inputs = [[NSArray alloc] init];
-
-        for (int i = 0; i < bufLength; i++) {
-            [inputs arrayByAddingObject:@(floatInput[i])];
-            //[inputs addObject:@(floatInput[i])];
-        }
+                float* floatInput = tensorInputs.data_ptr<float>();
+                if (!floatInput) {
+                    return nil;
+                }
+                NSMutableArray* inputs = [[NSMutableArray alloc] init];
+                //NSArray* inputs = [[NSArray alloc] init];
+        
+                for (int i = 0; i < bufLength; i++) {
+                    //[inputs arrayByAddingObject:@(floatInput[i])];
+                [inputs addObject:@(floatInput[i])];
+                }
         
         c10::InferenceMode guard;
         //NSLog(@"----------inputs are: %@ \n",inputs);
@@ -61,13 +63,13 @@
         //NSLog(@"----------result:  \n");
         CFTimeInterval elapsedTime = CACurrentMediaTime() - startTime;
         NSLog(@"inference time:%f", elapsedTime);
-            
         return [NSString stringWithCString:result.c_str() encoding:[NSString defaultCStringEncoding]];
     }
     catch (const std::exception& exception) {
         NSLog(@"%s", exception.what());
     }
     return @"inference failed";
+
 }
 
 

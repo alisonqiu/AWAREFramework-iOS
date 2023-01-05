@@ -157,6 +157,7 @@ static AWAREEventLogger * shared;
                                                @"device_id": AWAREStudy.sharedStudy.getDeviceId,
                                                @"log_message":eventStr}
                                       buffer:NO saveInMainThread:YES];
+        //NSLog(@"%@",eventStr);
         return YES;
     }
     return NO;

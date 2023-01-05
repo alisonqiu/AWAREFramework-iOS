@@ -142,7 +142,6 @@
 
 
 - (BOOL) resetCoreData {
-    
     for(NSPersistentStore * store in self.managedObjectContext.persistentStoreCoordinator.persistentStores){
         NSError * error = nil;
         bool isRemoved = [self.managedObjectContext.persistentStoreCoordinator removePersistentStore:store error:&error];

@@ -11,6 +11,7 @@
 @implementation EntityAmbientNoise (CoreDataProperties)
 
 + (NSFetchRequest<EntityAmbientNoise *> *)fetchRequest {
+    NSLog(@"(NSFetchRequest<EntityAmbientNoise *> *)fetchRequest");
 	return [[NSFetchRequest alloc] initWithEntityName:@"EntityAmbientNoise"];
 }
 

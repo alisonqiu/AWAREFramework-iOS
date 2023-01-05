@@ -87,6 +87,7 @@
 }
 
 - (BOOL)saveDataWithDictionary:(NSDictionary * _Nullable)dataDict buffer:(BOOL)isRequiredBuffer saveInMainThread:(BOOL)saveInMainThread {
+    NSLog(@"todo overwrite: saveDataWithDictionary");
     [self saveDataWithArray:@[dataDict] buffer:isRequiredBuffer saveInMainThread:saveInMainThread];
     return YES;
 }
@@ -340,7 +341,7 @@
             [fetchRequest setSortDescriptors:sortDescriptors];
             
             //Get NSManagedObject from managedObjectContext by using fetch setting
-            
+            NSLog(@"see if fetchRequest is used: Get NSManagedObject from managedObjectContext by using fetch setting");
             NSDate * s = [NSDate new];
             NSArray *results = [private executeFetchRequest:fetchRequest error:nil] ;
             if (self.isDebug) NSLog(@"[%@] SQLite ---> %f", self.sensorName, [[NSDate new] timeIntervalSinceDate:s] );

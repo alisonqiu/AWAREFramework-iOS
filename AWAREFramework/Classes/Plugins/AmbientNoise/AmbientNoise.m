@@ -86,15 +86,12 @@ NSString * const _Nonnull AWARE_PREFERENCES_PLUGIN_AMBIENT_NOISE_SILENCE_THRESHO
 
     //wav2vec2Path = [[NSBundle mainBundle] URLForResource:@"wav2vec2" withExtension:@"ptl"];
     wav2vec2Path = @"/Users/alisonqiu/Downloads/swiftApps/ios-demo-app/SpeechRecognition/SpeechRecognition/wav2vec2.ptl";
-    module = [[InferenceModule alloc] initWithFileAtPath:wav2vec2Path];
+    //module = [[InferenceModule alloc] initWithFileAtPath:wav2vec2Path];
     @try {
         module = [[InferenceModule alloc] initWithFileAtPath:wav2vec2Path];
     } @catch (NSException *exception) {
-        NSLog(@"[WARNING] No Object Model at %@", wav2vec2Path);
-    } @finally {
-        NSLog(@"tried initializing wav2vec2");
+        NSLog(@"[WARNING] No Object Model at %@", exception.description);
     }
-
     
     if (dbType == AwareDBTypeJSON) {
         storage = [[JSONStorage alloc] initWithStudy:study sensorName:SENSOR_AMBIENT_NOISE];
@@ -104,7 +101,7 @@ NSString * const _Nonnull AWARE_PREFERENCES_PLUGIN_AMBIENT_NOISE_SILENCE_THRESHO
             NSArray * headerTypes  = @[@(CSVTypeReal),@(CSVTypeText),@(CSVTypeReal),@(CSVTypeReal),@(CSVTypeReal),@(CSVTypeInteger),@(CSVTypeReal),@(CSVTypeText),@(CSVTypeText)];
         storage = [[CSVStorage alloc] initWithStudy:study sensorName:SENSOR_AMBIENT_NOISE headerLabels:header headerTypes:headerTypes];
     }else{
-        //TODO: check EntityAmbientNoise is an entity name in storage
+
         storage = [[SQLiteStorage alloc] initWithStudy:study sensorName:SENSOR_AMBIENT_NOISE entityName:NSStringFromClass([EntityAmbientNoise class])
                                         insertCallBack:^(NSDictionary *data, NSManagedObjectContext *childContext, NSString *entity) {
                                             
@@ -124,6 +121,7 @@ NSString * const _Nonnull AWARE_PREFERENCES_PLUGIN_AMBIENT_NOISE_SILENCE_THRESHO
     }
     self = [super initWithAwareStudy:study
                           sensorName:SENSOR_AMBIENT_NOISE
+            //TODO: specify a local storage
                              storage:storage];
     if (self) {
 
@@ -192,8 +190,13 @@ NSString * const _Nonnull AWARE_PREFERENCES_PLUGIN_AMBIENT_NOISE_SILENCE_THRESHO
     mainTimer = [NSTimer scheduledTimerWithTimeInterval:60.0f*_frequencyMin
                                                  target:self
                                                selector:@selector(startRecording:)
-                                               userInfo:[NSDictionary dictionaryWithObject:@0 forKey:KEY_AUDIO_CLIP_NUMBER]
+              
+//                                               userInfo:[NSDictionary dictionaryWithObject: [NSNumber numberWithFloat:[[NSDate date] timeIntervalSince1970] * 1000] forKey:KEY_AUDIO_CLIP_NUMBER]
+                                               userInfo:[NSDictionary dictionaryWithObject: @0 forKey:KEY_AUDIO_CLIP_NUMBER]
                                                 repeats:YES];
+    //rewrite user info
+//    NSString *strTimeStamp = [NSString stringWithFormat:@"%f",[[NSDate date] timeIntervalSince1970] * 1000];
+//    int timestamps = [strTimeStamp intValue];
     [mainTimer fire];
     
     [self setSensingState:YES];
@@ -287,8 +290,14 @@ NSString * const _Nonnull AWARE_PREFERENCES_PLUGIN_AMBIENT_NOISE_SILENCE_THRESHO
     if([sender isKindOfClass:[NSTimer class]]){
         NSDictionary * userInfo = ((NSTimer *) sender).userInfo;
         number = [userInfo objectForKey:KEY_AUDIO_CLIP_NUMBER];
+        //rewrite user info
+//        NSString *strTimeStamp = [NSString stringWithFormat:@"%@",number];
+//        int number = [strTimeStamp intValue];
+        NSLog(@"start recording from timer with number %@", number);
     }else if([sender isKindOfClass:[NSDictionary class]]){
         number = [(NSDictionary *)sender objectForKey:KEY_AUDIO_CLIP_NUMBER];
+        NSLog(@" start recording from stop recording with number %@", number);
+        
     }else{
         NSLog(@"An error at ambient noise sensor. There is an unknow userInfo format.");
     }
@@ -303,12 +312,12 @@ NSString * const _Nonnull AWARE_PREFERENCES_PLUGIN_AMBIENT_NOISE_SILENCE_THRESHO
     //
     // Create an instance of the EZAudioFFTRolling to keep a history of the incoming audio data and calculate the FFT.
     //
-    if(!_fft){
-        self.fft = [EZAudioFFTRolling fftWithWindowSize:FFTViewControllerFFTWindowSize
-                                             sampleRate:self.microphone.audioStreamBasicDescription.mSampleRate
-                                               delegate:self];
-        //NSLog(@"self.fft initialized in AN \n");
-    }
+//    if(!_fft){
+//        self.fft = [EZAudioFFTRolling fftWithWindowSize:FFTViewControllerFFTWindowSize
+//                                             sampleRate:self.microphone.audioStreamBasicDescription.mSampleRate
+//                                               delegate:self];
+//        //NSLog(@"self.fft initialized in AN \n");
+//    }
     
     if (!_recorder) {
         NSLog(@"startRecoding: no recorder");
@@ -335,6 +344,7 @@ NSString * const _Nonnull AWARE_PREFERENCES_PLUGIN_AMBIENT_NOISE_SILENCE_THRESHO
  * Stop recording ambient noise
  */
 - (void) stopRecording:(id)sender{
+    NSLog(@"should happen every 6 secs");
     dispatch_async(dispatch_get_main_queue(), ^{
         if (self->_isRecording) {
             int number = -1;
@@ -394,6 +404,7 @@ NSString * const _Nonnull AWARE_PREFERENCES_PLUGIN_AMBIENT_NOISE_SILENCE_THRESHO
     NSLog(@"inside saveAudioDataWithNumber");
     NSNumber * unixtime = [AWAREUtils getUnixTimestamp:[NSDate new]];
     
+    
     [self setLatestValue:[NSString stringWithFormat:@"[%d] dB:%f, RMS:%f, Frequency:%f", number, db, rms, maxFrequency]];
     
     if ([self isDebug]) {
@@ -449,11 +460,11 @@ NSString * const _Nonnull AWARE_PREFERENCES_PLUGIN_AMBIENT_NOISE_SILENCE_THRESHO
     [self setLatestData:dict];
     
     @try {
-        NSLog(@"---------print dict");
-        for (id key in dict) {
-            NSLog(@"key: %@, value: %@ \n", key, [dict objectForKey:key]);
-        }
-        [self.storage saveDataWithDictionary:dict buffer:YES saveInMainThread:NO];
+        //NSLog(@"---------print dict");
+//        for (id key in dict) {
+//            NSLog(@"key: %@, value: %@ \n", key, [dict objectForKey:key]);
+//        }
+        [self.storage saveDataWithDictionary:dict buffer:YES saveInMainThread:YES];
         
         SensorEventHandler handler = [self getSensorEventHandler];
         if (handler!=nil) {
@@ -695,7 +706,7 @@ NSString * const _Nonnull AWARE_PREFERENCES_PLUGIN_AMBIENT_NOISE_SILENCE_THRESHO
             if ([self.delegate respondsToSelector:@selector(audioDidSave:completion:)]) {
 
                 [self.delegate audioDidSave:audio_url completion:^(NSString *result) {
-                    NSLog(@"called completion with result %@",result);
+                    //NSLog(@"called completion with result %@",result);
                     [self saveAudioDataWithNumber:[NSNumber numberWithChar:self->KEY_AUDIO_CLIP_NUMBER] andResult:result];
                 }];
                 return [NSString stringWithFormat:@"%@/%@", @"audioDidSave:(int)number %@",[@(number) stringValue]];

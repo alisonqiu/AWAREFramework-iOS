@@ -20,7 +20,7 @@
     <entity name="EntityAmbientNoise" representedClassName="EntityAmbientNoise" syncable="YES">
         <attribute name="device_id" optional="YES" attributeType="String" syncable="YES"/>
         <attribute name="dnn_res" optional="YES" attributeType="String" syncable="YES"/>
-        <attribute name="double_decibels" optional="YES" attributeType="Double" defaultValueString="0.0" usesScalarValueType="NO" syncable="YES"/>
+        <attribute name="double_decibels" optional="YES" attributeType="Double" defaultValueString="0.0" usesScalarValueType="NO" elementID="alison" syncable="YES"/>
         <attribute name="double_frequency" optional="YES" attributeType="Double" defaultValueString="0.0" usesScalarValueType="NO" syncable="YES"/>
         <attribute name="double_rms" optional="YES" attributeType="Double" defaultValueString="0.0" usesScalarValueType="NO" syncable="YES"/>
         <attribute name="double_silent_threshold" optional="YES" attributeType="Double" defaultValueString="0.0" usesScalarValueType="NO" syncable="YES"/>

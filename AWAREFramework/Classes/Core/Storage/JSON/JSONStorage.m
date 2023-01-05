@@ -40,7 +40,7 @@
     }
     
     if (!saveInMainThread) {
-        // NSLog(@"[%@] JSONStorage only support a data storing in the main thread. Threfore, the data is stored in the main-thread.", self.sensorName);
+        NSLog(@"[%@] JSONStorage only support a data storing in the main thread. Threfore, the data is stored in the main-thread.", self.sensorName);
     }
     
     if(self.buffer == nil){
@@ -120,7 +120,7 @@
 
 - (void)startSyncStorage {
     NSString* formatedSensorData = [self getJSONFormatData];
-    // NSLog(@"%@",formatedSensorData);
+    NSLog(@"formatedSensorData %@",formatedSensorData);
     SyncExecutor *executor = [[SyncExecutor alloc] initWithAwareStudy:self.awareStudy sensorName:self.sensorName];
     
     if (formatedSensorData!=nil) {

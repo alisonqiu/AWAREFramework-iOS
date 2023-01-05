@@ -65,6 +65,7 @@
 }
 
 - (BOOL)saveDataWithDictionary:(NSDictionary *)dataDict buffer:(BOOL)isRequiredBuffer saveInMainThread:(BOOL)saveInMainThread{
+    NSLog(@"%@ to be saved as csv",dataDict);
     return [self saveDataWithArray:@[dataDict] buffer:isRequiredBuffer saveInMainThread:saveInMainThread];
 }
 
