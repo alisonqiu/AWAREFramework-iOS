@@ -706,7 +706,7 @@ NSString * const _Nonnull AWARE_PREFERENCES_PLUGIN_AMBIENT_NOISE_SILENCE_THRESHO
             if ([self.delegate respondsToSelector:@selector(audioDidSave:completion:)]) {
 
                 [self.delegate audioDidSave:audio_url completion:^(NSString *result) {
-                    //NSLog(@"called completion with result %@",result);
+                    NSLog(@"called completion with result %@",result);
                     [self saveAudioDataWithNumber:[NSNumber numberWithChar:self->KEY_AUDIO_CLIP_NUMBER] andResult:result];
                 }];
                 return [NSString stringWithFormat:@"%@/%@", @"audioDidSave:(int)number %@",[@(number) stringValue]];
