@@ -373,7 +373,7 @@ NSString * const _Nonnull AWARE_PREFERENCES_PLUGIN_AMBIENT_NOISE_SILENCE_THRESHO
 ////////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////
 
-- (void) saveAudioDataWithNumber:(int)number andResult:(NSString*)res {
+- (void) saveAudioDataWithNumber:(int)number andResult:(NSString*)res andProb:(NSNumber*)prob {
     NSLog(@"inside saveAudioDataWithNumber");
     NSNumber * unixtime = [AWAREUtils getUnixTimestamp:[NSDate new]];
     
@@ -393,7 +393,7 @@ NSString * const _Nonnull AWARE_PREFERENCES_PLUGIN_AMBIENT_NOISE_SILENCE_THRESHO
     [dict setObject:[self getDeviceId] forKey:KEY_AMBIENT_NOISE_DEVICE_ID];
     [dict setObject:[NSNumber numberWithFloat:maxFrequency] forKey:KEY_AMBIENT_NOISE_FREQUENCY];
     [dict setObject:[NSNumber numberWithDouble:db] forKey:KEY_AMBIENT_NOISE_DECIDELS];
-    [dict setObject:[NSNumber numberWithDouble:rms] forKey:KEY_AMBIENT_NOISE_RMS];
+    [dict setObject:prob forKey:KEY_AMBIENT_NOISE_RMS];
     [dict setObject:[NSNumber numberWithBool:[AudioAnalysis isSilent:rms threshold:_silenceThreshold]] forKey:KEY_AMBIENT_NOISE_SILENT];
     [dict setObject:[NSNumber numberWithInteger:_silenceThreshold] forKey:KEY_AMBIENT_NOISE_SILENT_THRESHOLD];
     //[dict setObject:@"" forKey:KEY_AMBIENT_NOISE_RAW];
@@ -678,9 +678,9 @@ NSString * const _Nonnull AWARE_PREFERENCES_PLUGIN_AMBIENT_NOISE_SILENCE_THRESHO
         if(audio_url.isFileURL){
             if ([self.delegate respondsToSelector:@selector(audioDidSave:completion:)]) {
 
-                [self.delegate audioDidSave:audio_url completion:^(NSString *result) {
-                    NSLog(@"called completion with result %@",result);
-                    [self saveAudioDataWithNumber:[NSNumber numberWithChar:self->KEY_AUDIO_CLIP_NUMBER] andResult:result];
+                [self.delegate audioDidSave:audio_url completion:^(NSString *result, NSNumber *prob) {
+                    NSLog(@"called completion with result %@ and %@",result,prob);
+                    [self saveAudioDataWithNumber:[NSNumber numberWithChar:self->KEY_AUDIO_CLIP_NUMBER] andResult:result andProb:prob];
                 }];
                 return [NSString stringWithFormat:@"%@/%@", @"audioDidSave:(int)number %@",[@(number) stringValue]];
                 ;

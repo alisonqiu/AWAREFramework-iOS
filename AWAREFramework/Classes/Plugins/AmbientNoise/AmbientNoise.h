@@ -62,7 +62,7 @@ extern NSString * _Nonnull const AWARE_PREFERENCES_PLUGIN_AMBIENT_NOISE_SILENCE_
 
 //- (void)recorderDidClose:(EZRecorder *)recorder;
 //- (NSString *_Nullable)audioDidSave:(NSURL *_Nullable)audio_url;
-- (void)audioDidSave:(NSURL *_Nullable)audio_url completion:(void(^_Nonnull)(NSString* _Nullable result))callback;
+- (void)audioDidSave:(NSURL *_Nullable)audio_url completion:(void(^_Nonnull)(NSString* _Nullable result, NSNumber* prob))callback;
 @end
 
 
