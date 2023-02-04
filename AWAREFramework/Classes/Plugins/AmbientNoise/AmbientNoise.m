@@ -83,15 +83,6 @@ NSString * const _Nonnull AWARE_PREFERENCES_PLUGIN_AMBIENT_NOISE_SILENCE_THRESHO
     
     AWAREStorage * storage = nil;
     
-
-    //wav2vec2Path = [[NSBundle mainBundle] URLForResource:@"wav2vec2" withExtension:@"ptl"];
-    wav2vec2Path = @"/Users/alisonqiu/Downloads/swiftApps/ios-demo-app/SpeechRecognition/SpeechRecognition/wav2vec2.ptl";
-    //module = [[InferenceModule alloc] initWithFileAtPath:wav2vec2Path];
-    @try {
-        module = [[InferenceModule alloc] initWithFileAtPath:wav2vec2Path];
-    } @catch (NSException *exception) {
-        NSLog(@"[WARNING] No Object Model at %@", exception.description);
-    }
     
     if (dbType == AwareDBTypeJSON) {
         storage = [[JSONStorage alloc] initWithStudy:study sensorName:SENSOR_AMBIENT_NOISE];
@@ -191,12 +182,9 @@ NSString * const _Nonnull AWARE_PREFERENCES_PLUGIN_AMBIENT_NOISE_SILENCE_THRESHO
                                                  target:self
                                                selector:@selector(startRecording:)
               
-//                                               userInfo:[NSDictionary dictionaryWithObject: [NSNumber numberWithFloat:[[NSDate date] timeIntervalSince1970] * 1000] forKey:KEY_AUDIO_CLIP_NUMBER]
                                                userInfo:[NSDictionary dictionaryWithObject: @0 forKey:KEY_AUDIO_CLIP_NUMBER]
                                                 repeats:YES];
-    //rewrite user info
-//    NSString *strTimeStamp = [NSString stringWithFormat:@"%f",[[NSDate date] timeIntervalSince1970] * 1000];
-//    int timestamps = [strTimeStamp intValue];
+ 
     [mainTimer fire];
     
     [self setSensingState:YES];
@@ -290,9 +278,6 @@ NSString * const _Nonnull AWARE_PREFERENCES_PLUGIN_AMBIENT_NOISE_SILENCE_THRESHO
     if([sender isKindOfClass:[NSTimer class]]){
         NSDictionary * userInfo = ((NSTimer *) sender).userInfo;
         number = [userInfo objectForKey:KEY_AUDIO_CLIP_NUMBER];
-        //rewrite user info
-//        NSString *strTimeStamp = [NSString stringWithFormat:@"%@",number];
-//        int number = [strTimeStamp intValue];
         NSLog(@"start recording from timer with number %@", number);
     }else if([sender isKindOfClass:[NSDictionary class]]){
         number = [(NSDictionary *)sender objectForKey:KEY_AUDIO_CLIP_NUMBER];
@@ -305,20 +290,10 @@ NSString * const _Nonnull AWARE_PREFERENCES_PLUGIN_AMBIENT_NOISE_SILENCE_THRESHO
     // if ([self isDebug] && currentSecond == 0) {
     if ([self isDebug] && [number isEqualToNumber:@0]) {
         if (self.isDebug) NSLog(@"Start Recording");
-        // [AWAREUtils sendLocalNotificationForMessage:@"[Ambient Noise] Start Recording" soundFlag:NO];
     } else if ([number isEqualToNumber:@-1]){
         NSLog(@"An error at ambient noise sensor...");
     }
-    //
-    // Create an instance of the EZAudioFFTRolling to keep a history of the incoming audio data and calculate the FFT.
-    //
-//    if(!_fft){
-//        self.fft = [EZAudioFFTRolling fftWithWindowSize:FFTViewControllerFFTWindowSize
-//                                             sampleRate:self.microphone.audioStreamBasicDescription.mSampleRate
-//                                               delegate:self];
-//        //NSLog(@"self.fft initialized in AN \n");
-//    }
-    
+
     if (!_recorder) {
         NSLog(@"startRecoding: no recorder");
 
@@ -384,9 +359,7 @@ NSString * const _Nonnull AWARE_PREFERENCES_PLUGIN_AMBIENT_NOISE_SILENCE_THRESHO
                 // stop recording audio
                 [self.recorder closeAudioFile];
                 self.recorder.delegate = nil;
-                // stop fft
-                self.fft.delegate = nil;
-                self.fft = nil;
+
                 // init
                 number = 0;
                 self->_isRecording = NO;

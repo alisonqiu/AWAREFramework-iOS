@@ -87,7 +87,6 @@
 }
 
 - (BOOL)saveDataWithDictionary:(NSDictionary * _Nullable)dataDict buffer:(BOOL)isRequiredBuffer saveInMainThread:(BOOL)saveInMainThread {
-    NSLog(@"todo overwrite: saveDataWithDictionary");
     [self saveDataWithArray:@[dataDict] buffer:isRequiredBuffer saveInMainThread:saveInMainThread];
     return YES;
 }
