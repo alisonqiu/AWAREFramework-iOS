@@ -18,7 +18,7 @@ NS_ASSUME_NONNULL_BEGIN
 @property (nullable, nonatomic, copy) NSString *device_id;
 @property (nullable, nonatomic, copy) NSNumber *double_decibels;
 @property (nullable, nonatomic, copy) NSNumber *double_frequency;
-@property (nullable, nonatomic, copy) NSNumber *double_rms;
+@property (nullable, nonatomic, copy) NSNumber *double_prob;
 @property (nullable, nonatomic, copy) NSNumber *double_silent_threshold;
 @property (nullable, nonatomic, copy) NSNumber *is_silent;
 @property (nullable, nonatomic, copy) NSString *raw;

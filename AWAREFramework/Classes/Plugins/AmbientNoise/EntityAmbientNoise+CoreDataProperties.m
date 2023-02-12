@@ -18,7 +18,7 @@
 @dynamic device_id;
 @dynamic double_decibels;
 @dynamic double_frequency;
-@dynamic double_rms;
+@dynamic double_prob;
 @dynamic double_silent_threshold;
 @dynamic is_silent;
 @dynamic raw;

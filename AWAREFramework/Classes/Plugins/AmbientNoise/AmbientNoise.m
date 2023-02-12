@@ -30,7 +30,7 @@ NSString * const _Nonnull AWARE_PREFERENCES_PLUGIN_AMBIENT_NOISE_SILENCE_THRESHO
     NSString * KEY_AMBIENT_NOISE_DEVICE_ID;
     NSString * KEY_AMBIENT_NOISE_FREQUENCY;
     NSString * KEY_AMBIENT_NOISE_DECIDELS;
-    NSString * KEY_AMBIENT_NOISE_RMS;
+    NSString * KEY_AMBIENT_NOISE_PROB;
     NSString * KEY_AMBIENT_NOISE_SILENT;
     NSString * KEY_AMBIENT_NOISE_SILENT_THRESHOLD;
     NSString * KEY_AMBIENT_NOISE_RAW;
@@ -43,7 +43,7 @@ NSString * const _Nonnull AWARE_PREFERENCES_PLUGIN_AMBIENT_NOISE_SILENCE_THRESHO
     
     float  maxFrequency;
     double db;
-    double rms;
+    double prob;
     
     float  lastdb;
     
@@ -75,7 +75,7 @@ NSString * const _Nonnull AWARE_PREFERENCES_PLUGIN_AMBIENT_NOISE_SILENCE_THRESHO
     KEY_AMBIENT_NOISE_DEVICE_ID = @"device_id";
     KEY_AMBIENT_NOISE_FREQUENCY = @"double_frequency";
     KEY_AMBIENT_NOISE_DECIDELS  = @"double_decibels";
-    KEY_AMBIENT_NOISE_RMS       = @"double_rms";
+    KEY_AMBIENT_NOISE_PROB       = @"double_prob";
     KEY_AMBIENT_NOISE_SILENT    = @"is_silent";
     KEY_AMBIENT_NOISE_SILENT_THRESHOLD = @"double_silent_threshold";
     KEY_AMBIENT_NOISE_RAW       = @"raw";
@@ -87,7 +87,7 @@ NSString * const _Nonnull AWARE_PREFERENCES_PLUGIN_AMBIENT_NOISE_SILENCE_THRESHO
     if (dbType == AwareDBTypeJSON) {
         storage = [[JSONStorage alloc] initWithStudy:study sensorName:SENSOR_AMBIENT_NOISE];
     }else if(dbType == AwareDBTypeCSV){
-        NSArray * header = @[KEY_AMBIENT_NOISE_TIMESTAMP,KEY_AMBIENT_NOISE_DEVICE_ID,KEY_AMBIENT_NOISE_FREQUENCY,KEY_AMBIENT_NOISE_DECIDELS,KEY_AMBIENT_NOISE_RMS,KEY_AMBIENT_NOISE_SILENT,KEY_AMBIENT_NOISE_SILENT_THRESHOLD,KEY_AMBIENT_NOISE_RAW,KEY_AMBIENT_DNN_RES];
+        NSArray * header = @[KEY_AMBIENT_NOISE_TIMESTAMP,KEY_AMBIENT_NOISE_DEVICE_ID,KEY_AMBIENT_NOISE_FREQUENCY,KEY_AMBIENT_NOISE_DECIDELS,KEY_AMBIENT_NOISE_PROB,KEY_AMBIENT_NOISE_SILENT,KEY_AMBIENT_NOISE_SILENT_THRESHOLD,KEY_AMBIENT_NOISE_RAW,KEY_AMBIENT_DNN_RES];
         
             NSArray * headerTypes  = @[@(CSVTypeReal),@(CSVTypeText),@(CSVTypeReal),@(CSVTypeReal),@(CSVTypeReal),@(CSVTypeInteger),@(CSVTypeReal),@(CSVTypeText),@(CSVTypeText)];
         storage = [[CSVStorage alloc] initWithStudy:study sensorName:SENSOR_AMBIENT_NOISE headerLabels:header headerTypes:headerTypes];
@@ -102,7 +102,7 @@ NSString * const _Nonnull AWARE_PREFERENCES_PLUGIN_AMBIENT_NOISE_SILENCE_THRESHO
                                             ambientNoise.timestamp = [data objectForKey:@"timestamp"];
                                             ambientNoise.double_frequency = [data objectForKey:self->KEY_AMBIENT_NOISE_FREQUENCY];
                                             ambientNoise.double_decibels = [data objectForKey:self->KEY_AMBIENT_NOISE_DECIDELS];
-                                            ambientNoise.double_rms = [data objectForKey:self->KEY_AMBIENT_NOISE_RMS];
+                                            ambientNoise.double_prob = [data objectForKey:self->KEY_AMBIENT_NOISE_PROB];
                                             ambientNoise.is_silent = [data objectForKey:self->KEY_AMBIENT_NOISE_SILENT];
                                             ambientNoise.double_silent_threshold = [data objectForKey:self->KEY_AMBIENT_NOISE_SILENT_THRESHOLD];
                                             ambientNoise.raw = [data objectForKey:self->KEY_AMBIENT_NOISE_RAW];
@@ -112,7 +112,6 @@ NSString * const _Nonnull AWARE_PREFERENCES_PLUGIN_AMBIENT_NOISE_SILENCE_THRESHO
     }
     self = [super initWithAwareStudy:study
                           sensorName:SENSOR_AMBIENT_NOISE
-            //TODO: specify a local storage
                              storage:storage];
     if (self) {
 
@@ -127,7 +126,7 @@ NSString * const _Nonnull AWARE_PREFERENCES_PLUGIN_AMBIENT_NOISE_SILENCE_THRESHO
         
         maxFrequency = 0;
         db  = 0;
-        rms = 0;
+        prob = 0;
         
         KEY_AUDIO_CLIP_NUMBER = @"key_audio_clip";
     
@@ -148,7 +147,7 @@ NSString * const _Nonnull AWARE_PREFERENCES_PLUGIN_AMBIENT_NOISE_SILENCE_THRESHO
     [query appendFormat:@"%@ text default '',",   KEY_AMBIENT_NOISE_DEVICE_ID];
     [query appendFormat:@"%@ real default 0,",    KEY_AMBIENT_NOISE_FREQUENCY];
     [query appendFormat:@"%@ real default 0,",    KEY_AMBIENT_NOISE_DECIDELS];
-    [query appendFormat:@"%@ real default 0,",    KEY_AMBIENT_NOISE_RMS];
+    [query appendFormat:@"%@ real default 0,",    KEY_AMBIENT_NOISE_PROB];
     [query appendFormat:@"%@ integer default 0,", KEY_AMBIENT_NOISE_SILENT];
     [query appendFormat:@"%@ real default 0,",    KEY_AMBIENT_NOISE_SILENT_THRESHOLD];
     [query appendFormat:@"%@ text default ''",    KEY_AMBIENT_NOISE_RAW];
@@ -332,7 +331,7 @@ NSString * const _Nonnull AWARE_PREFERENCES_PLUGIN_AMBIENT_NOISE_SILENCE_THRESHO
             // init variables
             self->maxFrequency = 0;
             self->db     = 0;
-            self->rms    = 0;
+            self->prob    = 0;
             self->lastdb = 0;
             
             self.recorder = nil;
@@ -378,26 +377,19 @@ NSString * const _Nonnull AWARE_PREFERENCES_PLUGIN_AMBIENT_NOISE_SILENCE_THRESHO
     NSNumber * unixtime = [AWAREUtils getUnixTimestamp:[NSDate new]];
     
     
-    [self setLatestValue:[NSString stringWithFormat:@"[%d] dB:%f, RMS:%f, Frequency:%f", number, db, rms, maxFrequency]];
+    [self setLatestValue:[NSString stringWithFormat:@"DNN:%@, Prob:%f", res, prob]];
     
-    if ([self isDebug]) {
-        NSString * message = [NSString stringWithFormat:@"[%d] dB:%f, RMS:%f, Frequency:%f", number, db, rms, maxFrequency];
-        NSLog(@"%@",message);
-        if(_sampleSize<=number){
-            // [AWAREUtils sendLocalNotificationForMessage:message soundFlag:NO];
-        }
-    }
+
     
     NSMutableDictionary *dict = [[NSMutableDictionary alloc] init];
     [dict setObject:unixtime forKey:KEY_AMBIENT_NOISE_TIMESTAMP];
     [dict setObject:[self getDeviceId] forKey:KEY_AMBIENT_NOISE_DEVICE_ID];
     [dict setObject:[NSNumber numberWithFloat:maxFrequency] forKey:KEY_AMBIENT_NOISE_FREQUENCY];
     [dict setObject:[NSNumber numberWithDouble:db] forKey:KEY_AMBIENT_NOISE_DECIDELS];
-    [dict setObject:prob forKey:KEY_AMBIENT_NOISE_RMS];
-    [dict setObject:[NSNumber numberWithBool:[AudioAnalysis isSilent:rms threshold:_silenceThreshold]] forKey:KEY_AMBIENT_NOISE_SILENT];
+    [dict setObject:prob forKey:KEY_AMBIENT_NOISE_PROB];
+    [dict setObject:[NSNumber numberWithBool:[AudioAnalysis isSilent:[prob floatValue] threshold:_silenceThreshold]] forKey:KEY_AMBIENT_NOISE_SILENT];
     [dict setObject:[NSNumber numberWithInteger:_silenceThreshold] forKey:KEY_AMBIENT_NOISE_SILENT_THRESHOLD];
     //[dict setObject:@"" forKey:KEY_AMBIENT_NOISE_RAW];
-    //TODO: direct call
     if(res){
         [dict setObject:res forKey:KEY_AMBIENT_DNN_RES];
     }else{
@@ -512,8 +504,6 @@ NSString * const _Nonnull AWARE_PREFERENCES_PLUGIN_AMBIENT_NOISE_SILENCE_THRESHO
         withBufferSize:(UInt32)bufferSize
   withNumberOfChannels:(UInt32)numberOfChannels{
 
-    //rms = [EZAudioUtilities RMS:*buffer length:bufferSize] * 1000;
-
     float one     = 1.0;
     float meanVal = 0.0;
     float tiny    = 0.1;
@@ -524,41 +514,6 @@ NSString * const _Nonnull AWARE_PREFERENCES_PLUGIN_AMBIENT_NOISE_SILENCE_THRESHO
     
     float currentdb = 1.0 - (fabs(meanVal)/100);
     
-//    if (lastdb == INFINITY || lastdb == -INFINITY || isnan(lastdb)) {
-//        lastdb = 0.0;
-//    }
-//    float tempdb = ((1.0 - tiny)*lastdb) + tiny*currentdb;
-//    //    if (tempdb == INFINITY && tempdb == -INFINITY) {
-//
-//    bool isInfinity = false;
-//    if (isinf(tempdb) ){
-//        NSLog(@"[AmbientNoise] dB is INFINITY");
-//        tempdb = 0.0;
-//        isInfinity = true;
-//    }
-//    if(isinf(rms) ){
-//        NSLog(@"[AmbientNoise] RMS is INFINITY");
-//        rms = 0.0;
-//        isInfinity = true;
-//    }
-//    if(isinf(maxFrequency)){
-//        NSLog(@"[AmbientNoise] MAX Frequency is INFINITY");
-//        maxFrequency = 0.0;
-//        isInfinity = true;
-//    }
-//
-//    if (!isInfinity){
-//        db = tempdb;
-//        lastdb = tempdb;
-//
-//        dispatch_async(dispatch_get_main_queue(),^{
-//            // Visualize this data brah, buffer[0] = left channel, buffer[1] = right channel
-//            //        [weakSelf.audioPlot updateBuffer:buffer[0] withBufferSize:bufferSize];
-//            NSString * value = [NSString stringWithFormat:@"dB:%f, RMS:%f, Frequency:%f", self->db, self->rms, self->maxFrequency];
-//            [self setLatestValue:value];
-//
-//        });
-//    }
 }
 
 //------------------------------------------------------------------------------
